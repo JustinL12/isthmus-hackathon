@@ -20,6 +20,7 @@ import {
 import { type ReactNode, useState } from "react";
 import { money } from "@/lib/plan-math";
 import { GROUPS, type Group, type PlanItem } from "@/lib/types";
+import { GROUP_TONE, focusRing } from "@/lib/ui";
 import { SetupItemCard, SetupItemPreview } from "./SetupItemCard";
 
 const GROUP_IDS = new Set<UniqueIdentifier>(GROUPS.map((g) => g.id));
@@ -158,17 +159,18 @@ function FocusedColumn({
     <section
       ref={setNodeRef}
       aria-label={label}
-      className={`@container flex min-h-48 flex-col rounded-xl border-2 p-3 text-black transition-colors ${
-        isOver ? "border-blue-400 bg-blue-100" : "border-gray-300 bg-gray-100"
+      className={`@container flex min-h-48 flex-col rounded-2xl border p-3 text-ink transition-colors ${
+        isOver ? "border-primary bg-primary-soft" : "border-line bg-white/60"
       }`}
     >
-      <div className="flex items-baseline justify-between gap-2">
-        <h2 className="text-lg font-bold">{label}</h2>
-        <span className="text-sm font-semibold tabular-nums text-gray-700">{summary(count, subtotal)}</span>
+      {/* Same header as the decision screen's group sections (GroupBoard). */}
+      <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
+        <h2 className={`rounded-md px-2 py-0.5 text-xs font-semibold ${GROUP_TONE[id]}`}>{label}</h2>
+        <p className="text-sm text-muted">{hint}</p>
+        <span className="ml-auto text-sm text-muted tabular-nums">{summary(count, subtotal)}</span>
       </div>
-      <p className="mb-3 text-sm text-gray-600">{hint}</p>
       {count === 0 ? (
-        <p className="flex flex-1 items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-6 text-center text-sm text-gray-500">
+        <p className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-line p-6 text-center text-sm text-muted">
           No items here yet. Drag items onto this group or add them from the price list.
         </p>
       ) : (
@@ -201,27 +203,27 @@ function CollapsedColumn({
     <section
       ref={setNodeRef}
       aria-label={label}
-      className={`flex flex-col rounded-xl p-2 text-black transition-colors ${
-        isOver ? "bg-blue-100 ring-2 ring-blue-400" : "bg-gray-100"
+      className={`flex flex-col rounded-2xl border p-2 text-ink transition-colors ${
+        isOver ? "border-primary bg-primary-soft ring-2 ring-primary/30" : "border-line bg-white/40"
       }`}
     >
       <button
         onClick={onOpen}
         aria-expanded={false}
-        className="w-full rounded-lg p-2 text-left hover:bg-gray-200"
+        className={`w-full rounded-xl p-2 text-left transition-colors hover:bg-white/80 ${focusRing}`}
       >
-        <span className="flex items-center justify-between gap-1 font-bold leading-tight">
-          {label}
-          <span aria-hidden="true" className="text-gray-400">›</span>
+        <span className="flex items-center justify-between gap-1">
+          <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${GROUP_TONE[id]}`}>{label}</span>
+          <span aria-hidden="true" className="text-muted">›</span>
         </span>
-        <span className="block text-sm font-semibold tabular-nums text-gray-600">{summary(count, subtotal)}</span>
+        <span className="mt-1.5 block text-sm text-muted tabular-nums">{summary(count, subtotal)}</span>
       </button>
       {/* Item names are hidden on phones, where collapsed groups are just a header bar. */}
       <ul className="mt-1 hidden space-y-1 md:block">{children}</ul>
       {dropHint && (
         <p
-          className={`mt-2 flex flex-1 items-center justify-center rounded-lg border-2 border-dashed p-3 text-center text-sm ${
-            isOver ? "border-blue-400 text-blue-700" : "border-gray-300 text-gray-500"
+          className={`mt-2 flex flex-1 items-center justify-center rounded-xl border border-dashed p-3 text-center text-sm ${
+            isOver ? "border-primary text-primary" : "border-ink/25 text-muted"
           }`}
         >
           Drop to move here
@@ -242,12 +244,12 @@ function CompactItem({ item, onOpen }: { item: PlanItem; onOpen: () => void }) {
         {...attributes}
         onClick={onOpen}
         aria-label={`${item.name}, ${money(item.price)}. Drag to move it to another group.`}
-        className={`flex w-full touch-none items-baseline justify-between gap-2 rounded-md bg-white px-2 py-1.5 text-left text-sm shadow-sm hover:bg-gray-50 ${
+        className={`flex w-full touch-none items-baseline justify-between gap-2 rounded-lg border border-line bg-white px-2 py-1.5 text-left text-sm transition-colors hover:border-ink/30 ${focusRing} ${
           isDragging ? "opacity-40" : ""
         }`}
       >
         <span className="min-w-0 truncate">{item.name}</span>
-        <span className="shrink-0 font-medium tabular-nums text-gray-600">{money(item.price)}</span>
+        <span className="shrink-0 font-medium tabular-nums text-slate">{money(item.price)}</span>
       </button>
     </li>
   );

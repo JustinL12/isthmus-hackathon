@@ -19,6 +19,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
+import { PlanHeader } from "@/components/AppChrome";
 import { BudgetBar } from "@/components/BudgetBar";
 import { ChromaticLabel } from "@/components/ChromaticLabel";
 import { MagneticCard, MagneticCards } from "@/components/MagneticCards";
@@ -155,35 +156,7 @@ export default function DecisionPage({ params }: { params: Promise<{ id: string 
         />
       </div>
 
-      <header className="bg-badger text-white">
-        <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:px-8">
-          <Link href="/" className="flex shrink-0 items-center gap-2 font-serif text-2xl">
-            <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-              <circle cx="12" cy="12" r="9.5" />
-              <path d="m7.5 12.5 3 3 6-6.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            Isthmus
-          </Link>
-          <div className="hidden h-9 w-px bg-white/30 sm:block" />
-          <div className="min-w-0">
-            <p className="truncate font-medium">
-              {pet.name}
-              {pet.age_years != null && ` · ${pet.age_years}-year-old ${pet.species}`}
-            </p>
-            <p className="truncate text-sm text-white/80">
-              {[pet.reason, `Owner: ${plan.owner_name}`].filter(Boolean).join(" · ")}
-            </p>
-          </div>
-          <div className="ml-auto hidden items-center gap-3 md:flex">
-            <span className="hidden text-xs font-semibold uppercase tracking-wider whitespace-nowrap text-white/80 lg:inline">
-              Sample estimate
-            </span>
-            <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-medium whitespace-nowrap text-white ring-1 ring-white/30">
-              Shared screen · vet + owner
-            </span>
-          </div>
-        </div>
-      </header>
+      <PlanHeader plan={plan} note="Sample estimate" badge="Shared screen · vet + owner" />
 
       <main className="mx-auto grid max-w-7xl gap-8 px-4 py-6 sm:px-8 md:grid-cols-[minmax(0,1fr)_280px] md:gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-8">
         <div className="@container space-y-5">

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { searchCatalog, suggestedGroup } from "@/lib/catalog";
 import { money } from "@/lib/plan-math";
 import { GROUPS, type CatalogItem } from "@/lib/types";
+import { GROUP_TONE, card, focusRing, input, secondaryButton, sectionLabel } from "@/lib/ui";
 
 /** Search the clinic price list (name, code, or estimate shorthand like "CBC w/ diff") and add items. */
 export function CatalogSearch({
@@ -23,7 +24,8 @@ export function CatalogSearch({
   const results = searchCatalog(catalog, query);
 
   return (
-    <section aria-label="Add items from the price list" className="rounded-xl border border-gray-200 bg-white p-4 text-black">
+    <section aria-label="Add items from the price list" className={`${card} p-4 text-ink`}>
+      <h2 className={`mb-2 ${sectionLabel}`}>Add from the price list</h2>
       <div className="flex items-center gap-2">
         <input
           type="search"
@@ -32,16 +34,16 @@ export function CatalogSearch({
           autoFocus
           aria-label="Search price list"
           placeholder="Search by name, code, or estimate shorthand (e.g. CBC w/ diff)"
-          className="h-11 flex-1 rounded-lg border border-gray-300 bg-white px-3"
+          className={`min-w-0 flex-1 ${input}`}
         />
-        <button onClick={onClose} className="h-11 rounded-lg px-4 font-medium text-gray-600 hover:bg-gray-100">
+        <button onClick={onClose} className={`h-11 ${secondaryButton}`}>
           Done
         </button>
       </div>
 
-      <ul className="mt-3 max-h-64 divide-y divide-gray-100 overflow-y-auto">
+      <ul className="mt-3 max-h-64 divide-y divide-line overflow-y-auto">
         {results.length === 0 && (
-          <li className="py-3 text-sm text-gray-500">No matching items in the price list.</li>
+          <li className="py-3 text-sm text-muted">No matching items in the price list.</li>
         )}
         {results.map(({ item, alias }) => {
           const added = inPlan.has(item.id);
@@ -49,8 +51,8 @@ export function CatalogSearch({
           return (
             <li key={item.id} className="flex items-center gap-3 py-2">
               <div className="min-w-0 flex-1">
-                <p className="font-medium leading-tight">{item.name}</p>
-                <p className="text-xs text-gray-500">
+                <p className="font-semibold leading-tight">{item.name}</p>
+                <p className="text-xs text-muted">
                   {item.code}
                   {alias && <> · matches “{alias}”</>}
                 </p>
@@ -60,7 +62,9 @@ export function CatalogSearch({
                 onClick={() => onAdd(item)}
                 disabled={added}
                 aria-label={added ? `${item.name} is already in the plan` : `Add ${item.name} to ${group.label}`}
-                className="h-10 w-40 shrink-0 rounded-lg border border-gray-300 px-3 text-sm font-medium hover:bg-gray-50 disabled:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
+                className={`h-10 w-40 shrink-0 rounded-lg px-3 text-sm font-semibold transition-[filter] hover:brightness-95 disabled:bg-cream disabled:font-medium disabled:text-muted disabled:hover:brightness-100 ${focusRing} ${
+                  added ? "" : GROUP_TONE[group.id]
+                }`}
               >
                 {added ? "In plan" : `+ ${group.label}`}
               </button>

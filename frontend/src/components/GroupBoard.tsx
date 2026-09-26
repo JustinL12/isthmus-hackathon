@@ -4,13 +4,11 @@ import { DndContext, type DragEndEvent, PointerSensor, TouchSensor, useDraggable
 import { type ReactNode, useId } from "react";
 import { money, todayTotal } from "@/lib/plan-math";
 import { GROUPS, type Group, type PlanItem } from "@/lib/types";
+import { GROUP_TONE } from "@/lib/ui";
 import { ItemCard } from "./ItemCard";
 
-export const GROUP_TONE: Record<Group, string> = {
-  essential: "bg-essential-soft text-essential",
-  soon: "bg-soon-soft text-soon",
-  optional: "bg-optional-soft text-optional",
-};
+// Defined in lib/ui (server components can read it there); re-exported for existing imports.
+export { GROUP_TONE };
 
 /**
  * Three stacked groups (Essential / Soon / Optional).

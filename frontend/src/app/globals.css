@@ -1,8 +1,11 @@
 @import "tailwindcss";
 
+/* Every page uses the Isthmus palette (cream + ink, below). It's light-only, like the
+   shared decision screen, so native controls render light too. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f6f2ea; /* cream */
+  --foreground: #1f2a2a; /* ink */
+  color-scheme: light;
 }
 
 @theme inline {
@@ -51,13 +54,6 @@
 html:has([data-plan-screen]) {
   scrollbar-gutter: stable;
   background: var(--color-cream);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {

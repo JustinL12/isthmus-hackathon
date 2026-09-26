@@ -4,6 +4,7 @@ import { useDraggable } from "@dnd-kit/core";
 import { useState } from "react";
 import { money } from "@/lib/plan-math";
 import { GROUPS, type Group, type PlanItem } from "@/lib/types";
+import { focusRing } from "@/lib/ui";
 
 /** Vet-facing item card: drag handle, group picker, remove, library explanation preview, note for the owner. */
 export function SetupItemCard({
@@ -25,7 +26,7 @@ export function SetupItemCard({
   return (
     <div
       ref={setNodeRef}
-      className={`rounded-lg border border-gray-200 bg-white p-3 text-black shadow-sm ${isDragging ? "opacity-40" : ""}`}
+      className={`rounded-xl border border-line bg-white p-3 text-ink transition-opacity ${isDragging ? "opacity-40" : ""}`}
     >
       <div className="flex items-start gap-2">
         <button
@@ -33,19 +34,19 @@ export function SetupItemCard({
           {...listeners}
           {...attributes}
           aria-label={`Drag ${item.name} to another group`}
-          className="-ml-1 flex h-11 w-8 shrink-0 cursor-grab touch-none items-center justify-center rounded text-gray-400 hover:bg-gray-100 active:cursor-grabbing"
+          className={`-ml-1 flex h-11 w-8 shrink-0 cursor-grab touch-none items-center justify-center rounded-lg text-muted/70 hover:bg-cream hover:text-ink active:cursor-grabbing ${focusRing}`}
         >
           <GripIcon />
         </button>
         <div className="min-w-0 flex-1 pt-2">
-          <p className="font-medium leading-tight">{item.name}</p>
-          {code && <p className="text-xs text-gray-500">{code}</p>}
+          <p className="font-semibold leading-tight">{item.name}</p>
+          {code && <p className="text-xs text-muted">{code}</p>}
         </div>
-        <span className="pt-2 font-semibold tabular-nums">{money(item.price)}</span>
+        <span className="pt-2 text-lg font-semibold tabular-nums">{money(item.price)}</span>
         <button
           onClick={onRemove}
           aria-label={`Remove ${item.name}`}
-          className="flex h-11 w-9 shrink-0 items-center justify-center rounded text-xl text-gray-400 hover:bg-red-50 hover:text-red-600"
+          className={`flex h-11 w-9 shrink-0 items-center justify-center rounded-lg text-xl text-muted/70 hover:bg-essential-soft hover:text-bad ${focusRing}`}
         >
           ×
         </button>
@@ -56,7 +57,7 @@ export function SetupItemCard({
           value={item.group}
           onChange={(e) => onMove(e.target.value as Group)}
           aria-label={`Group for ${item.name}`}
-          className="h-9 rounded-md border border-gray-300 bg-white px-2 text-sm"
+          className="h-9 rounded-lg border border-line bg-white px-2 text-sm text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
         >
           {GROUPS.map((g) => (
             <option key={g.id} value={g.id}>
@@ -68,7 +69,7 @@ export function SetupItemCard({
           <button
             onClick={() => setNoteOpen(true)}
             aria-label={`Add a note for the owner about ${item.name}`}
-            className="h-9 rounded-md px-2 text-sm font-medium text-blue-700 hover:bg-blue-50"
+            className={`h-9 rounded-lg px-2 text-sm font-medium text-primary hover:bg-primary-soft ${focusRing}`}
           >
             + Note
           </button>
@@ -77,16 +78,16 @@ export function SetupItemCard({
 
       <div className="mt-2 pl-9 text-sm">
         {item.explanation ? (
-          <details className="text-gray-700">
-            <summary className="cursor-pointer text-gray-500">What the owner will see</summary>
+          <details className="text-slate">
+            <summary className="cursor-pointer text-muted hover:text-ink">What the owner will see</summary>
             <dl className="mt-1 space-y-1">
-              <div><dt className="inline font-semibold">What: </dt><dd className="inline">{item.explanation.what}</dd></div>
-              <div><dt className="inline font-semibold">Why: </dt><dd className="inline">{item.explanation.why}</dd></div>
-              <div><dt className="inline font-semibold">If postponed: </dt><dd className="inline">{item.explanation.if_postponed}</dd></div>
+              <div><dt className="inline font-semibold text-ink">What: </dt><dd className="inline">{item.explanation.what}</dd></div>
+              <div><dt className="inline font-semibold text-ink">Why: </dt><dd className="inline">{item.explanation.why}</dd></div>
+              <div><dt className="inline font-semibold text-ink">If postponed: </dt><dd className="inline">{item.explanation.if_postponed}</dd></div>
             </dl>
           </details>
         ) : (
-          <p className="text-amber-700">No library explanation yet. Consider adding a note for the owner.</p>
+          <p className="text-soon">No library explanation yet. Consider adding a note for the owner.</p>
         )}
       </div>
 
@@ -103,14 +104,14 @@ export function SetupItemCard({
             rows={2}
             autoFocus={item.vet_note == null}
             placeholder="e.g. Recheck in 2 weeks if still vomiting."
-            className="mt-1 w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm"
+            className="mt-1 w-full rounded-lg border border-line bg-white px-2 py-1.5 text-sm text-ink outline-none placeholder:text-muted/70 focus:border-primary focus:ring-2 focus:ring-primary/20"
           />
           <button
             onClick={() => {
               onNote(null);
               setNoteOpen(false);
             }}
-            className="py-1 text-sm text-gray-500 hover:text-red-600"
+            className="py-1 text-sm text-muted hover:text-bad"
           >
             Remove note
           </button>
@@ -123,10 +124,10 @@ export function SetupItemCard({
 /** Static copy of a card shown under the finger/cursor while dragging. */
 export function SetupItemPreview({ item }: { item: PlanItem }) {
   return (
-    <div className="flex cursor-grabbing items-center gap-2 rounded-lg border border-gray-300 bg-white p-3 text-black shadow-lg">
-      <span className="text-gray-400"><GripIcon /></span>
-      <span className="flex-1 font-medium">{item.name}</span>
-      <span className="font-semibold tabular-nums">{money(item.price)}</span>
+    <div className="flex cursor-grabbing items-center gap-2 rounded-xl border border-line bg-white p-3 text-ink shadow-lg">
+      <span className="text-muted/70"><GripIcon /></span>
+      <span className="flex-1 font-semibold">{item.name}</span>
+      <span className="text-lg font-semibold tabular-nums">{money(item.price)}</span>
     </div>
   );
 }

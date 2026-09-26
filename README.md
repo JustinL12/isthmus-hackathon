@@ -17,9 +17,11 @@ backend/    FastAPI (Python)                            → owned by Back end an
 | Path | What | Owner |
 | --- | --- | --- |
 | `app/page.tsx` | Landing | FE2 |
-| `app/setup/page.tsx` | Vet setup step 1: pick template, pet/owner/budget | FE2 |
-| `app/plan/[id]/arrange/page.tsx` | Vet setup step 2: drag items between groups, add from price list, remove, notes for owner | FE2 |
-| `components/setup/` | Vet setup board, item card, price-list search | FE2 |
+| `app/setup/page.tsx` | Vet setup step 1: patient and owner (pet, species, age, reason, owner, budget). `?new=1` starts a blank visit | FE2 |
+| `app/setup/template/page.tsx` | Vet setup step 2: pick the visit template, build the plan | FE2 |
+| `app/plan/[id]/arrange/page.tsx` | Vet setup step 3: drag items between groups, add from price list, remove, notes for owner | FE2 |
+| `components/setup/` | Step bar with back/forward arrows, board, item card, price-list search | FE2 |
+| `lib/setup-draft.ts` | Steps 1–2 draft, kept in sessionStorage so the arrows, back button and reload keep it | FE2 |
 | `app/plan/[id]/page.tsx` | **Shared decision screen**: groups, explanations, live total, budget bar, payment toggle | FE1 |
 | `app/plan/[id]/resources/page.tsx` | "Can't cover it today?" Madison resources | FE2 |
 | `app/summary/[token]/page.tsx` | Take-home summary via share link | FE2 |
@@ -103,7 +105,7 @@ npm run dev
 
 ## Demo flow
 
-`/setup` → Build plan → `/plan/{id}/arrange` (drag) → Review with owner → `/plan/{id}` (tick items, watch total drop)
+`/setup` (patient) → `/setup/template` (template, Build plan) → `/plan/{id}/arrange` (drag) → Review with owner → `/plan/{id}` (tick items, watch total drop)
 → Agree → `/summary/{token}` (share link). "Can't cover it today?" → `/plan/{id}/resources`.
 
 ## TODO (next passes)
