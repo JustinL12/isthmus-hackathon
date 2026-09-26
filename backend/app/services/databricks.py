@@ -21,7 +21,7 @@ from ..models import Plan
 
 log = logging.getLogger(__name__)
 
-QUERY_TIMEOUT_S = 8
+QUERY_TIMEOUT_S = 12  # first query after idle can be slow; template fallback after this
 _SAFE_ID = re.compile(r"^[a-z0-9-]+$")
 
 
@@ -142,9 +142,9 @@ def export_agreed_plan(plan: Plan) -> None:
 
 
 def ping() -> bool:
-    """Runs SELECT 1, which also wakes a stopped SQL warehouse (can take a minute)."""
+    """Wakes a stopped SQL warehouse (can take a minute) and warms the similar-case query."""
     try:
-        run("SELECT 1")
+        similar_cases("cat", 12, ["vomiting", "not-eating"])
         return True
     except Exception:
         log.exception("Databricks ping failed")
