@@ -17,8 +17,9 @@ backend/    FastAPI (Python)                            → owned by Back end an
 | Path | What | Owner |
 | --- | --- | --- |
 | `app/page.tsx` | Landing | FE2 |
-| `app/setup/page.tsx` | Vet setup: pick template, pet/owner/budget | FE2 |
-| `app/plan/[id]/arrange/page.tsx` | Vet drags items between groups | FE2 |
+| `app/setup/page.tsx` | Vet setup step 1: pick template, pet/owner/budget | FE2 |
+| `app/plan/[id]/arrange/page.tsx` | Vet setup step 2: drag items between groups, add from price list, remove, notes for owner | FE2 |
+| `components/setup/` | Vet setup board, item card, price-list search | FE2 |
 | `app/plan/[id]/page.tsx` | **Shared decision screen**: groups, explanations, live total, budget bar, payment toggle | FE1 |
 | `app/plan/[id]/resources/page.tsx` | "Can't cover it today?" Madison resources | FE2 |
 | `app/summary/[token]/page.tsx` | Take-home summary via share link | FE2 |
@@ -46,7 +47,7 @@ suggestions fall back to the best-matching template. `GET /health` shows what's 
 | `app/main.py` | FastAPI app, CORS, routers under `/api`, `/health` (`?warm=true` wakes Databricks) |
 | `app/models.py` | Pydantic models (mirror `frontend/src/lib/types.ts`) |
 | `app/store.py` | Data access: Neon when `DATABASE_URL` is set, else JSON + in-memory |
-| `app/routers/reference.py` | `GET /catalog`, `/templates`, `/symptoms`, `/resources` |
+| `app/routers/reference.py` | `GET /catalog`, `/explanations`, `/templates`, `/symptoms`, `/resources` |
 | `app/routers/suggest.py` | `POST /suggest` (symptoms → grouped items) |
 | `app/routers/plans.py` | `POST /plans`, `GET/PATCH /plans/{id}`, `POST /plans/{id}/agree`, `POST /plans/{id}/email`, `GET /share/{token}`, `GET /share/{token}/pdf` |
 | `app/routers/ai.py` | `POST /ai/parse-estimate` (stretch, stub) |
@@ -56,7 +57,7 @@ suggestions fall back to the best-matching template. `GET /health` shows what's 
 | `app/services/summary_pdf.py`, `email.py` | Take-home PDF (fpdf2) and Resend email |
 | `app/services/rechecks.py` | Semester-aware recheck dates |
 | `app/services/matching.py` | Match messy names ("CBC w/ diff") to catalog |
-| `app/data/*.json` | Catalog (32 items), explanations, templates, symptoms, Madison resources, synthetic cases |
+| `app/data/*.json` | Catalog (33 items), explanations, templates, symptoms, Madison resources, synthetic cases |
 | `db/schema.sql` | Neon schema |
 | `scripts/seed.py` | Create Neon tables + upsert `app/data` |
 | `scripts/generate_cases.py` | Claude generates ~300 SAMPLE cases → `app/data/synthetic_cases.jsonl` |
@@ -108,7 +109,7 @@ npm run dev
 ## TODO (next passes)
 
 - [ ] Vet-student review of catalog prices and explanations
-- [ ] Add/remove items and vet notes on the arrange screen
+- [x] Add/remove items and vet notes on the arrange screen
 - [ ] Setup page: symptom chips → `/suggest`; summary page: PDF + email buttons
 - [ ] Split-with-roommate approvals (needs a `shares` table)
 - [ ] Deploy: Vercel (frontend) + Render (backend, `render.yaml`)
