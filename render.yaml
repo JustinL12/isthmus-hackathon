@@ -1,0 +1,35 @@
+# Render blueprint: New > Blueprint > pick this repo. Secrets are entered in the dashboard.
+services:
+  - type: web
+    name: clearcare-api
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: CORS_ORIGINS
+        sync: false   # e.g. https://clearcare.vercel.app,http://localhost:3000
+      - key: PUBLIC_APP_URL
+        sync: false   # frontend URL, used in share links and emails
+      - key: DATABASE_URL
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: DATABRICKS_HOST
+        sync: false
+      - key: DATABRICKS_HTTP_PATH
+        sync: false
+      - key: DATABRICKS_TOKEN
+        sync: false
+      - key: DATABRICKS_CATALOG
+        sync: false
+      - key: DATABRICKS_SCHEMA
+        value: clearcare
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false

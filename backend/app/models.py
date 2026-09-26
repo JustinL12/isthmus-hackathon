@@ -8,6 +8,8 @@ from pydantic import BaseModel, Field
 Group = Literal["essential", "soon", "optional"]
 PaymentChoice = Literal["pay_today", "split"]
 PlanStatus = Literal["draft", "agreed"]
+Species = Literal["cat", "dog"]
+PlanSource = Literal["suggest", "template"]
 
 
 class Explanation(BaseModel):
@@ -28,8 +30,15 @@ class CatalogItem(BaseModel):
 class Template(BaseModel):
     id: str
     name: str
-    species: Literal["cat", "dog"]
+    species: Species
     item_ids: list[str]
+    symptoms: list[str] = []  # symptom ids, used to pick a fallback template
+
+
+class Symptom(BaseModel):
+    id: str
+    label: str
+    species: list[Species]
 
 
 class Resource(BaseModel):
@@ -43,7 +52,7 @@ class Resource(BaseModel):
 
 class Pet(BaseModel):
     name: str
-    species: Literal["cat", "dog"]
+    species: Species
     age_years: float | None = None
     reason: str = ""
 
@@ -57,6 +66,7 @@ class PlanItem(BaseModel):
     selected: bool = True
     vet_note: str | None = None
     explanation: Explanation | None = None
+    reason: str | None = None  # why it was suggested (AI / similar cases)
     recheck_date: date | None = None
 
 
@@ -69,16 +79,32 @@ class Plan(BaseModel):
     status: PlanStatus = "draft"
     share_token: str | None = None
     items: list[PlanItem] = []
+    symptoms: list[str] = []
+    notes: str | None = None
+    owner_email: str | None = None
+    source: PlanSource = "template"
 
 
 # ---- Request bodies ----
 
 
+class ItemChoice(BaseModel):
+    catalog_id: str
+    group: Group
+    reason: str | None = None
+
+
 class CreatePlanRequest(BaseModel):
-    template_id: str
+    """Build from `items` (from /suggest) or, failing that, from `template_id`."""
+
+    template_id: str | None = None
+    items: list[ItemChoice] | None = None
     pet: Pet
     owner_name: str
     budget: float | None = None
+    symptoms: list[str] = []
+    notes: str | None = None
+    owner_email: str | None = None
 
 
 class UpdatePlanRequest(BaseModel):
@@ -87,6 +113,30 @@ class UpdatePlanRequest(BaseModel):
     budget: float | None = None
     payment_choice: PaymentChoice | None = None
     items: list[PlanItem] | None = None
+    owner_email: str | None = None
+
+
+class SuggestRequest(BaseModel):
+    species: Species
+    age_years: float | None = None
+    symptoms: list[str]
+    notes: str | None = None
+
+
+class SuggestedItem(ItemChoice):
+    name: str
+    price: float
+
+
+class SuggestResponse(BaseModel):
+    items: list[SuggestedItem]
+    source: Literal["databricks+claude", "databricks", "template", "none"]
+    similar_case_count: int = 0
+    fallback_template_id: str | None = None
+
+
+class EmailRequest(BaseModel):
+    email: str
 
 
 class ParsedLineItem(BaseModel):

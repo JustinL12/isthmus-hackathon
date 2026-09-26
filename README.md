@@ -26,21 +26,43 @@ backend/    FastAPI (Python)                            → owned by Back end an
 | `lib/types.ts` | Shared types (mirror `backend/app/models.py`) | all |
 | `lib/api.ts` | Typed API client | all |
 
-### Backend (`backend/app`)
+### Backend (`backend/`)
 
-| Path | What | Owner |
-| --- | --- | --- |
-| `main.py` | FastAPI app, CORS, routers under `/api` | BE |
-| `models.py` | Pydantic models (mirror `frontend/src/lib/types.ts`) | BE |
-| `store.py` | Data access: JSON seed data + in-memory plans (swap for Supabase) | BE |
-| `routers/reference.py` | `GET /catalog`, `/templates`, `/resources` | BE |
-| `routers/plans.py` | `POST /plans`, `GET/PATCH /plans/{id}`, `POST /plans/{id}/agree`, `GET /share/{token}` | BE |
-| `routers/ai.py` | `POST /ai/parse-estimate` (stretch, stub) | AI |
-| `services/claude.py` | Claude API: estimate parsing, draft explanations (stubs) | AI |
-| `services/matching.py` | Match messy names ("CBC w/ diff") to catalog | AI |
-| `services/rechecks.py` | Semester-aware recheck dates | BE |
-| `data/*.json` | Catalog, explanation library, templates, Madison resources | AI + content |
-| `../supabase/schema.sql` | Postgres schema for when we move off in-memory | BE |
+```
+Frontend (Vercel) ──HTTP──> FastAPI (Render)
+                               ├── Neon Postgres     catalog, templates, resources, plans (live app data)
+                               ├── Databricks SQL    cases + agreed_plans tables (symptom suggestions)
+                               ├── Claude API        picks and explains items from similar cases
+                               └── Resend            emails the summary PDF
+```
+
+Postgres handles the many small saves from the tablet; Databricks is only hit once per visit
+(suggestions) and after an agree (export, so suggestions learn from real plans).
+Every service is optional: with no keys the API runs on JSON seed data + in-memory plans, and
+suggestions fall back to the best-matching template. `GET /health` shows what's active.
+
+| Path | What |
+| --- | --- |
+| `app/main.py` | FastAPI app, CORS, routers under `/api`, `/health` (`?warm=true` wakes Databricks) |
+| `app/models.py` | Pydantic models (mirror `frontend/src/lib/types.ts`) |
+| `app/store.py` | Data access: Neon when `DATABASE_URL` is set, else JSON + in-memory |
+| `app/routers/reference.py` | `GET /catalog`, `/templates`, `/symptoms`, `/resources` |
+| `app/routers/suggest.py` | `POST /suggest` (symptoms → grouped items) |
+| `app/routers/plans.py` | `POST /plans`, `GET/PATCH /plans/{id}`, `POST /plans/{id}/agree`, `POST /plans/{id}/email`, `GET /share/{token}`, `GET /share/{token}/pdf` |
+| `app/routers/ai.py` | `POST /ai/parse-estimate` (stretch, stub) |
+| `app/services/suggest.py` | Fallback chain: Databricks + Claude → Databricks only → template |
+| `app/services/databricks.py` | Similar-case SQL, export of agreed plans |
+| `app/services/claude.py` | Claude: rank/explain suggestions; estimate parsing (stub) |
+| `app/services/summary_pdf.py`, `email.py` | Take-home PDF (fpdf2) and Resend email |
+| `app/services/rechecks.py` | Semester-aware recheck dates |
+| `app/services/matching.py` | Match messy names ("CBC w/ diff") to catalog |
+| `app/data/*.json` | Catalog (32 items), explanations, templates, symptoms, Madison resources, synthetic cases |
+| `db/schema.sql` | Neon schema |
+| `scripts/seed.py` | Create Neon tables + upsert `app/data` |
+| `scripts/generate_cases.py` | Claude generates ~300 SAMPLE cases → `app/data/synthetic_cases.jsonl` |
+| `scripts/load_databricks.py` | Create Databricks tables, load cases, `--check` runs the Mochi search |
+| `tests/` | pytest; external services mocked |
+| `../render.yaml` | Render deploy blueprint |
 
 The seed data reproduces the demo: Mochi, "Vomiting senior cat" → $780 total, $360 essential.
 Prices are samples. Verify resource info the week of the event.
@@ -54,9 +76,20 @@ cd backend
 py -m venv .venv          # Windows; use python3 elsewhere
 .venv/Scripts/activate    # or: source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env
+cp .env.example .env      # fill in whichever services you have
 uvicorn app.main:app --reload
+pytest                    # no keys needed
 ```
+
+One-time setup per service (run from `backend/`):
+
+```sh
+python -m scripts.seed              # Neon: create tables + load app/data
+python -m scripts.generate_cases    # Claude: write synthetic_cases.jsonl (commit it)
+python -m scripts.load_databricks   # Databricks: create tables + load cases, then print the Mochi check
+```
+
+Before the demo, open `/health?warm=true` so the Databricks warehouse is awake.
 
 **Frontend** (http://localhost:3000):
 
@@ -74,9 +107,9 @@ npm run dev
 
 ## TODO (next passes)
 
-- [ ] Fill catalog to ~30 items; more explanations; vet-student review
+- [ ] Vet-student review of catalog prices and explanations
 - [ ] Add/remove items and vet notes on the arrange screen
-- [ ] Supabase: swap `store.py`, realtime sync between tablet and phone
-- [ ] Split-with-roommate approvals (`shares` table)
-- [ ] Deploy: Vercel (frontend) + Render/Fly/Vercel Python (backend)
-- [ ] Stretch: estimate PDF upload, PDF summary/email, vet student trainer
+- [ ] Setup page: symptom chips → `/suggest`; summary page: PDF + email buttons
+- [ ] Split-with-roommate approvals (needs a `shares` table)
+- [ ] Deploy: Vercel (frontend) + Render (backend, `render.yaml`)
+- [ ] Stretch: estimate PDF upload, vet student trainer

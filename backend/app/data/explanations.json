@@ -38,5 +38,125 @@
     "what": "A gentle food that is easy on the stomach.",
     "why": "Can help the stomach settle for a few days.",
     "if_postponed": "Your vet can suggest a bland diet at home instead."
+  },
+  "xrays-limb": {
+    "what": "Pictures of the sore leg.",
+    "why": "Shows breaks, joint problems, or bone changes the vet can't feel.",
+    "if_postponed": "Often fine if your pet improves on rest and pain meds. Come back if the limp gets worse."
+  },
+  "nsaid": {
+    "what": "A daily pill that eases pain and swelling.",
+    "why": "Helps your pet stay comfortable while the injury heals.",
+    "if_postponed": "Your pet may stay sore and use the leg less. Never give human pain meds instead."
+  },
+  "sedation": {
+    "what": "Medicine that makes your pet calm and sleepy for a short time.",
+    "why": "Lets the vet position a sore leg for clear X-rays without hurting your pet.",
+    "if_postponed": "Only needed if X-rays are done."
+  },
+  "rabies": {
+    "what": "A vaccine against rabies.",
+    "why": "Required by law and protects your pet and your family.",
+    "if_postponed": "Your pet may be out of legal compliance. Check your local rules."
+  },
+  "dhpp": {
+    "what": "A combination vaccine against distemper, parvovirus and more.",
+    "why": "These diseases are serious and spread easily between dogs.",
+    "if_postponed": "Avoid dog parks and boarding until it is given."
+  },
+  "fvrcp": {
+    "what": "A combination vaccine against common cat viruses.",
+    "why": "Protects against flu-like illness and a serious gut virus.",
+    "if_postponed": "Lower risk for indoor-only cats. Ask your vet about timing."
+  },
+  "heartworm-test": {
+    "what": "A blood test for heartworm and some tick-borne diseases.",
+    "why": "Heartworm is spread by mosquitoes and damages the heart and lungs.",
+    "if_postponed": "Needed before starting or renewing heartworm prevention."
+  },
+  "dental-cleaning": {
+    "what": "A full cleaning of the teeth under anesthesia.",
+    "why": "Removes tartar and treats gum disease that can cause pain.",
+    "if_postponed": "Usually fine to schedule for a later date."
+  },
+  "fecal": {
+    "what": "A lab check of a stool sample.",
+    "why": "Looks for worms and other parasites that cause diarrhea.",
+    "if_postponed": "Your vet may treat for parasites without knowing which ones are there."
+  },
+  "ultrasound-abd": {
+    "what": "A detailed, painless scan of the belly organs.",
+    "why": "Shows problems X-rays can miss, like thickened intestines or masses.",
+    "if_postponed": "Often done later if first tests don't explain the problem."
+  },
+  "cat-pain-meds": {
+    "what": "A liquid pain medicine safe for cats.",
+    "why": "Keeps your cat comfortable while it heals.",
+    "if_postponed": "Your cat may hide pain and eat less. Never give human pain meds."
+  },
+  "antibiotics": {
+    "what": "Medicine that fights a bacterial infection.",
+    "why": "Clears infections in skin, wounds, or the bladder.",
+    "if_postponed": "The infection may spread or get harder to treat."
+  },
+  "ear-cytology": {
+    "what": "A swab of the ear looked at under a microscope.",
+    "why": "Shows whether yeast, bacteria, or mites are causing the problem.",
+    "if_postponed": "The vet may pick an ear medicine without knowing the cause."
+  },
+  "ear-meds": {
+    "what": "Drops or ointment for the ears.",
+    "why": "Treats ear infections and eases itching.",
+    "if_postponed": "Ear infections can become painful and harder to clear."
+  },
+  "skin-cytology": {
+    "what": "Tape pressed on the skin and looked at under a microscope.",
+    "why": "Finds yeast or bacteria that make itching worse.",
+    "if_postponed": "The vet may treat the itch without knowing if there is an infection."
+  },
+  "itch-meds": {
+    "what": "A pill or shot that calms itching.",
+    "why": "Stops the scratching that damages skin and keeps your pet awake.",
+    "if_postponed": "Scratching can cause sores and skin infections."
+  },
+  "flea-prevention": {
+    "what": "A monthly chew or topical that kills fleas and ticks.",
+    "why": "Fleas are a common cause of itching and can spread tapeworms.",
+    "if_postponed": "Fine to start soon, but itching may continue if fleas are the cause."
+  },
+  "fiv-felv": {
+    "what": "A blood test for two common cat viruses.",
+    "why": "These viruses weaken the immune system and spread to other cats.",
+    "if_postponed": "Keep your cat away from other cats until tested."
+  },
+  "blood-pressure": {
+    "what": "A painless cuff check of blood pressure.",
+    "why": "High blood pressure is common in older cats with kidney or thyroid disease.",
+    "if_postponed": "Usually fine to check at a recheck."
+  },
+  "eye-stain": {
+    "what": "A drop of dye that shows scratches on the eye.",
+    "why": "A scratched eye needs different medicine than an infection.",
+    "if_postponed": "The wrong eye medicine can make a scratch worse."
+  },
+  "eye-meds": {
+    "what": "Drops or ointment for the eye.",
+    "why": "Treats infection or helps a scratch heal.",
+    "if_postponed": "Eye problems can get worse quickly. Come back if squinting increases."
+  },
+  "hospitalization": {
+    "what": "A day in the hospital with IV fluids and close monitoring.",
+    "why": "For pets too sick or dehydrated to go home safely.",
+    "if_postponed": "Ask your vet what signs mean you should come back right away."
+  },
+  "bordetella": {
+    "what": "A vaccine against kennel cough.",
+    "why": "Often required for boarding, daycare, and grooming.",
+    "if_postponed": "Fine to skip if your dog doesn't board or go to daycare."
+  },
+  "microchip": {
+    "what": "A tiny ID chip placed under the skin.",
+    "why": "Helps shelters return your pet if it gets lost.",
+    "if_postponed": "Can be done at any future visit."
   }
 }

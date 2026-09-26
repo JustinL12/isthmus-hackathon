@@ -1,8 +1,17 @@
 [
   { "id": "vomiting-senior-cat", "name": "Vomiting senior cat", "species": "cat",
+    "symptoms": ["vomiting", "not-eating", "weight-loss", "lethargy", "drinking-more"],
     "item_ids": ["exam", "antiemetic-inj", "sq-fluids", "blood-panel", "xrays-abd", "urinalysis", "t4", "rx-diet"] },
   { "id": "limping-dog", "name": "Limping dog", "species": "dog",
+    "symptoms": ["limping", "pain", "swelling"],
     "item_ids": ["exam", "nsaid", "sedation", "xrays-limb"] },
   { "id": "annual-wellness", "name": "Annual wellness (dog)", "species": "dog",
-    "item_ids": ["exam", "rabies", "dhpp", "heartworm-test", "blood-panel", "urinalysis", "dental-cleaning"] }
+    "symptoms": ["wellness"],
+    "item_ids": ["exam", "rabies", "dhpp", "heartworm-test", "blood-panel", "urinalysis", "dental-cleaning"] },
+  { "id": "itchy-dog", "name": "Itchy dog", "species": "dog",
+    "symptoms": ["itching", "hair-loss", "ear-scratching"],
+    "item_ids": ["exam", "skin-cytology", "itch-meds", "flea-prevention", "ear-cytology", "antibiotics"] },
+  { "id": "diarrhea-dog", "name": "Dog with diarrhea", "species": "dog",
+    "symptoms": ["diarrhea", "vomiting", "not-eating"],
+    "item_ids": ["exam", "fecal", "rx-diet", "antiemetic-inj", "blood-panel", "xrays-abd"] }
 ]

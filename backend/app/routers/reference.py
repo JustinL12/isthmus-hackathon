@@ -1,11 +1,16 @@
-"""Read-only reference data: catalog, templates, Madison resources."""
+"""Read-only reference data: catalog, templates, symptoms, Madison resources."""
 
 from fastapi import APIRouter
 
 from .. import store
-from ..models import CatalogItem, Resource, Template
+from ..models import CatalogItem, Resource, Symptom, Template
 
 router = APIRouter(tags=["reference"])
+
+
+@router.get("/symptoms", response_model=list[Symptom])
+def list_symptoms():
+    return list(store.symptoms().values())
 
 
 @router.get("/catalog", response_model=list[CatalogItem])
