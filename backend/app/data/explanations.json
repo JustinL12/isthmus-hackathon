@@ -1,0 +1,42 @@
+{
+  "exam": {
+    "what": "The vet checks your pet from nose to tail.",
+    "why": "Tells the vet how sick your pet is and what to check next.",
+    "if_postponed": "Needed for any treatment today."
+  },
+  "antiemetic-inj": {
+    "what": "A shot that stops nausea and vomiting for about 24 hours.",
+    "why": "Helps your pet keep food and water down and feel better fast.",
+    "if_postponed": "Vomiting may continue and dehydration can get worse."
+  },
+  "sq-fluids": {
+    "what": "Fluids given under the skin to rehydrate.",
+    "why": "Vomiting pets lose water quickly, especially older cats.",
+    "if_postponed": "Dehydration can make your pet weaker and harder to treat."
+  },
+  "blood-panel": {
+    "what": "Blood tests that check organs like the kidneys and liver, plus blood cells.",
+    "why": "Finds common causes of vomiting in older cats, like kidney disease.",
+    "if_postponed": "The vet may miss an underlying problem that changes treatment."
+  },
+  "xrays-abd": {
+    "what": "Pictures of the belly.",
+    "why": "Looks for blockages or swallowed objects.",
+    "if_postponed": "Often fine to do at a recheck if vomiting improves. Come back sooner if it gets worse."
+  },
+  "urinalysis": {
+    "what": "A test of a urine sample.",
+    "why": "Adds detail to the blood panel on kidney health.",
+    "if_postponed": "Usually fine at a recheck within 1–2 weeks."
+  },
+  "t4": {
+    "what": "Measures thyroid hormone.",
+    "why": "An overactive thyroid is common in older cats and can cause vomiting.",
+    "if_postponed": "Usually fine to check at the next visit."
+  },
+  "rx-diet": {
+    "what": "A gentle food that is easy on the stomach.",
+    "why": "Can help the stomach settle for a few days.",
+    "if_postponed": "Your vet can suggest a bland diet at home instead."
+  }
+}

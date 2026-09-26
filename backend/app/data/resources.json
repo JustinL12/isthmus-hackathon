@@ -1,0 +1,14 @@
+[
+  { "id": "uw-vet-care", "name": "UW Veterinary Care",
+    "offers": "University vet hospital on Linden Dr: primary care, specialists, 24/7 emergency.",
+    "url": "https://uwveterinarycare.wisc.edu/" },
+  { "id": "wiscares", "name": "WisCARES Pet Care Clinic",
+    "offers": "Vet-school clinic where licensed vets and nurses work with vet students. Wellness, sick visits, diagnostics, some surgery.",
+    "eligibility": "Check if you're eligible with a short questionnaire. No walk-ins." },
+  { "id": "dchs", "name": "Dane County Humane Society",
+    "offers": "Spay/neuter help when space allows; refers to other low-cost options." },
+  { "id": "wcvc", "name": "Wisconsin Community Veterinary Center", "offers": "Lower-cost veterinary care (via DCHS referral list)." },
+  { "id": "precision-vet", "name": "Precision Vet Clinic", "offers": "Lower-cost veterinary care (via DCHS referral list)." },
+  { "id": "underdog", "name": "Underdog Vet Services", "offers": "Lower-cost veterinary care (via DCHS referral list)." },
+  { "id": "madison-cat-project", "name": "Madison Cat Project", "offers": "Affordable spay/neuter for cats." }
+]

@@ -1,0 +1,11 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+backend/.env
+
+# Node (frontend/ has its own .gitignore too)
+node_modules/
+.env*.local
+
+.DS_Store
