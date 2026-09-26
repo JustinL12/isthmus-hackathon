@@ -55,6 +55,8 @@ export const api = {
   templates: () => request<Template[]>("/templates"),
   resources: () => request<Resource[]>("/resources"),
   symptoms: () => request<Symptom[]>("/symptoms"),
+  /** Adds a symptom to the clinic list, or returns the existing one with the same name. */
+  addSymptom: (label: string) => request<Symptom>("/symptoms", { method: "POST", body: JSON.stringify({ label }) }),
   suggest: (body: SuggestRequest) => request<SuggestResponse>("/suggest", { method: "POST", body: JSON.stringify(body) }),
 
   createPlan: (body: CreatePlanRequest) => request<Plan>("/plans", { method: "POST", body: JSON.stringify(body) }),

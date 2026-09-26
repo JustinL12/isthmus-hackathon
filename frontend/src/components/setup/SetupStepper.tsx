@@ -11,25 +11,42 @@ export interface StepNav {
   disabled?: boolean;
 }
 
+/** Vet setup progress (Patient → Symptoms → Visit template → Sort items). */
+export function SetupStepper(props: { step: 1 | 2 | 3 | 4; back?: StepNav; forward?: StepNav }) {
+  return <Stepper steps={SETUP_STEPS} label="Vet setup steps" {...props} />;
+}
+
 /**
- * Vet setup progress (Patient → Symptoms → Visit template → Sort items) between a back arrow and a
- * forward arrow. Leave `back`/`forward` out where there's no step to go to; the arrow stays
- * in place but disabled so the bar doesn't shift between steps.
+ * Numbered progress between a back arrow and a forward arrow (`step` counts from 1). Leave
+ * `back`/`forward` out where there's no step to go to; the arrow stays in place but disabled
+ * so the bar doesn't shift between steps.
  */
-export function SetupStepper({ step, back, forward }: { step: 1 | 2 | 3 | 4; back?: StepNav; forward?: StepNav }) {
+export function Stepper({
+  steps,
+  label,
+  step,
+  back,
+  forward,
+}: {
+  steps: readonly string[];
+  label: string;
+  step: number;
+  back?: StepNav;
+  forward?: StepNav;
+}) {
   return (
-    <nav aria-label="Vet setup steps" className="flex items-center gap-2 sm:gap-4">
+    <nav aria-label={label} className="flex items-center gap-2 sm:gap-4">
       <ArrowButton direction="back" nav={back} />
       <ol className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2">
-        {SETUP_STEPS.map((label, i) => {
+        {steps.map((name, i) => {
           const n = i + 1;
           const state = n < step ? "done" : n === step ? "current" : "todo";
           return (
             <li
-              key={label}
+              key={name}
               aria-current={state === "current" ? "step" : undefined}
               // Sized by content (then the connectors stretch), so the current step's name fits.
-              className={`flex min-w-0 items-center gap-2 ${n < SETUP_STEPS.length ? "flex-auto" : ""}`}
+              className={`flex min-w-0 items-center gap-2 ${n < steps.length ? "flex-auto" : ""}`}
             >
               <span
                 aria-hidden
@@ -48,10 +65,10 @@ export function SetupStepper({ step, back, forward }: { step: 1 | 2 | 3 | 4; bac
                 className={`truncate text-sm font-medium ${state === "current" ? "text-ink" : "hidden text-muted sm:inline"}`}
               >
                 <span className="sr-only">Step {n}: </span>
-                {label}
+                {name}
                 {state === "done" && <span className="sr-only"> (done)</span>}
               </span>
-              {n < SETUP_STEPS.length && (
+              {n < steps.length && (
                 <span aria-hidden className={`h-0.5 min-w-3 flex-1 rounded-full ${n < step ? "bg-primary" : "bg-line"}`} />
               )}
             </li>

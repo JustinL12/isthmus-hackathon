@@ -36,8 +36,8 @@
   --color-optional-soft: #d8ebe6;
 }
 
-/* Decision screen: the intro step is short and the decision step scrolls; reserving the
-   scrollbar's space keeps the shared title from shifting sideways between them. */
+/* Shared screen (/plan/[id] and its explain and choose steps): some are short and some
+   scroll; reserving the scrollbar's space keeps the header from shifting sideways between them. */
 html:has([data-plan-screen]) {
   scrollbar-gutter: stable;
   background: var(--color-cream);

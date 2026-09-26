@@ -43,7 +43,7 @@ export default function Home() {
             <Link href="/setup?new=1" className={`w-fit rounded-xl ${focusRing}`}>
               <ChromaticLabel className="shadow-lg shadow-badger/30">Start a visit plan (vet)</ChromaticLabel>
             </Link>
-            <Link href="/plan/demo" className={`w-fit rounded-xl ${focusRing}`}>
+            <Link href="/setup?demo=1" className={`w-fit rounded-xl ${focusRing}`}>
               <ChromaticLabel texture="pine">Open the Mochi demo</ChromaticLabel>
             </Link>
           </div>

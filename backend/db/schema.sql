@@ -58,5 +58,13 @@ create table if not exists plans (
 alter table catalog_items add column if not exists active boolean not null default true;
 alter table catalog_items add column if not exists updated_at timestamptz not null default now();
 
+-- Symptom list. Seeded from app/data/symptoms.json, and vets can add their own.
+create table if not exists symptoms (
+  id         text primary key,
+  label      text not null,
+  species    text[] not null default '{cat,dog}',
+  created_at timestamptz not null default now()
+);
+
 -- The AI draft a plan started from, so vet changes can be learned from.
 alter table plans add column if not exists suggested jsonb not null default '[]';

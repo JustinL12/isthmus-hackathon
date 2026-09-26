@@ -3,8 +3,8 @@
 Run from backend/:  python -m scripts.seed [--reset]
 Safe to re-run. Plans are never touched.
 
-Catalog items and explanations are insert-only, so price-list edits made by the clinic
-survive a re-seed. --reset overwrites them with app/data/*.json.
+Catalog items, explanations and symptoms are insert-only, so edits and additions made in
+the app survive a re-seed. --reset overwrites them with app/data/*.json.
 """
 
 import argparse
@@ -42,6 +42,7 @@ def main():
 
     catalog = store.load_json("catalog.json")
     explanations = [{"catalog_id": k, **v} for k, v in store.load_json("explanations.json").items()]
+    symptoms = store.load_json("symptoms.json")
     templates = [{"symptoms": [], **t} for t in store.load_json("templates.json")]
     resources = [
         {"eligibility": None, "url": None, "phone": None, **r, "sort_order": i}
@@ -54,10 +55,11 @@ def main():
                 conn.exec_driver_sql(statement)
         upsert(conn, "catalog_items", "id", catalog, {"default_group"}, overwrite=reset)
         upsert(conn, "explanations", "catalog_id", explanations, overwrite=reset)
+        upsert(conn, "symptoms", "id", symptoms, overwrite=reset)
         upsert(conn, "templates", "id", templates)
         upsert(conn, "resources", "id", resources)
 
-    print(f"Seeded {len(catalog)} catalog items, {len(explanations)} explanations, "
+    print(f"Seeded {len(catalog)} catalog items, {len(explanations)} explanations, {len(symptoms)} symptoms, "
           f"{len(templates)} templates, {len(resources)} resources.")
 
 

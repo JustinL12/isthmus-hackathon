@@ -1,26 +1,17 @@
 "use client";
 
-import {
-  AnimatePresence,
-  motion,
-  type Transition,
-  useReducedMotion,
-  useScroll,
-  useSpring,
-  useTransform,
-} from "framer-motion";
+import { AnimatePresence, motion, type Transition, useReducedMotion } from "framer-motion";
 import Link from "next/link";
-import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { type ReactNode, useLayoutEffect, useRef, useState } from "react";
 import { FlipText } from "@/components/FlipText";
 import { GROUP_TONE } from "@/components/GroupBoard";
-import { smoothScrollTo } from "@/lib/smooth-scroll";
 import { GROUPS, type Group, type PlanItem } from "@/lib/types";
 
 // Walks the owner through how the estimate is organized, one screen at a time:
 //   0. overview  ->  1. the three groups and what they mean  ->  2. lower-cost options
 // "Next" flips the heading to the next message (components/FlipText); the group rows
-// pop in under it on step 1 and fade away for step 2. Once done, scrolling flips the
-// panel up and away (the motion of components/ui/case-study-flip-stack.tsx).
+// pop in under it on step 1 and fade away for step 2. "See the full plan" moves on to
+// /plan/[id]/choose.
 
 type Stage = 0 | 1 | 2;
 
@@ -39,8 +30,6 @@ const DEFINITION_LAG_S = 0.8;
 const EASE_OUT: Transition["ease"] = [0.22, 1, 0.36, 1];
 const BOX_RISE = { y: 28, duration: 0.8 };
 const ROW_RISE = { y: 44, duration: 1.4 }; // group rows drift in slower, to read along
-// Where the top box lands when the groups step glides it into place.
-const PANEL_TOP_GAP = 16;
 
 export function CareExplainer({
   petName,
@@ -51,39 +40,11 @@ export function CareExplainer({
   petName: string;
   items: PlanItem[];
   resourcesHref: string;
-  /** "See the full plan" (or "Skip to full plan"): reveal the plan and move to it. */
+  /** "See the full plan" (or "Skip to full plan"). */
   onShowPlan: () => void;
 }) {
   const reduceMotion = useReducedMotion() ?? false;
   const [stage, setStage] = useState<Stage>(0);
-  const panel = useRef<HTMLElement>(null);
-
-  // Flip away as the panel scrolls off the top, like a card leaving the flip stack.
-  const { scrollYProgress } = useScroll({ target: panel, offset: ["start start", "end start"] });
-  const progress = useSpring(scrollYProgress, { stiffness: 120, damping: 22, mass: 0.8, restDelta: 0.0005 });
-  const rotateX = useTransform(progress, [0, 1], reduceMotion ? [0, 0] : [0, 22]);
-  const y = useTransform(progress, [0, 1], reduceMotion ? ["0%", "0%"] : ["0%", "-18%"]);
-  const scale = useTransform(progress, [0, 1], reduceMotion ? [1, 1] : [1, 0.94]);
-  const opacity = useTransform(progress, [0, 0.8], [1, 0]);
-
-  // The page moves exactly twice: here, and on "See the full plan" (in the page).
-  // Entering the groups step, glide so this panel's top box sits at the top of the
-  // screen; the heading flip covers the glide and the rows start once it's done.
-  useEffect(() => {
-    if (stage !== 1) return;
-    const frame = requestAnimationFrame(() => {
-      const top = panel.current?.getBoundingClientRect().top;
-      if (top != null) smoothScrollTo(window.scrollY + top - PANEL_TOP_GAP);
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [stage]);
-
-  // Until the plan is shown, reserve a full screen below the panel's top. Without it the
-  // page can be too short to glide the panel to the top, and the page length changes as
-  // rows rise in (their offset counts toward scroll height) or leave, which makes the
-  // browser jump the scroll position.
-  const [reserveScreen, setReserveScreen] = useState(true);
-
   const groups = GROUPS.map((g) => ({ ...g, items: items.filter((i) => i.group === g.id) })).filter(
     (g) => g.items.length > 0,
   );
@@ -110,16 +71,6 @@ export function CareExplainer({
     if (stage < 2) setStage((stage + 1) as Stage);
   }
 
-  function showPlan() {
-    setReserveScreen(false);
-    onShowPlan();
-  }
-
-  function skip() {
-    setStage(2);
-    showPlan();
-  }
-
   // One box easing up into place after `delay` seconds (a quick fade with reduced motion).
   const rise = (delay: number, { y, duration } = BOX_RISE) =>
     reduceMotion
@@ -131,16 +82,7 @@ export function CareExplainer({
         };
 
   return (
-    <div
-      className="[perspective:800px]"
-      style={{ minHeight: reserveScreen ? `calc(100svh - ${PANEL_TOP_GAP}px)` : undefined }}
-    >
-      <motion.section
-        ref={panel}
-        aria-label={`How ${petName}'s estimate is organized`}
-        style={{ rotateX, y, scale, opacity, transformOrigin: "50% 0%" }}
-        className="space-y-4 will-change-transform"
-      >
+    <section aria-label={`How ${petName}'s estimate is organized`} className="space-y-4">
         <motion.div
           {...rise(0.15)}
           className={`rounded-2xl border p-6 shadow-[0_16px_50px_-24px_rgba(20,17,10,0.25)] transition-colors duration-700 sm:p-7 ${
@@ -182,7 +124,7 @@ export function CareExplainer({
                     →
                   </span>
                 </button>
-                <button onClick={skip} className="text-sm text-muted underline-offset-4 hover:text-ink hover:underline">
+                <button onClick={onShowPlan} className="text-sm text-muted underline-offset-4 hover:text-ink hover:underline">
                   Skip to full plan
                 </button>
                 <span className="ml-auto text-sm text-muted tabular-nums" aria-label={`Step ${stage + 1} of 3`}>
@@ -192,16 +134,16 @@ export function CareExplainer({
             ) : (
               <>
                 <button
-                  onClick={showPlan}
+                  onClick={onShowPlan}
                   className="flex items-center gap-3 rounded-full bg-ink px-6 py-2.5 font-semibold text-white transition-transform duration-200 hover:scale-[1.04] active:scale-[0.98] motion-reduce:transition-none"
                 >
                   See the full plan
                   <motion.span
                     aria-hidden
-                    animate={reduceMotion ? undefined : { y: [0, 4, 0] }}
+                    animate={reduceMotion ? undefined : { x: [0, 4, 0] }}
                     transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
                   >
-                    ↓
+                    →
                   </motion.span>
                 </button>
                 <Link
@@ -251,8 +193,7 @@ export function CareExplainer({
             </motion.div>
           )}
         </AnimatePresence>
-      </motion.section>
-    </div>
+    </section>
   );
 }
 

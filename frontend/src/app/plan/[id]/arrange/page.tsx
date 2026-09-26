@@ -20,6 +20,7 @@ import type { CatalogItem, Explanation, Group, Plan, PlanItem } from "@/lib/type
 import { GROUPS } from "@/lib/types";
 import { card, ctaWrapper, focusRing, secondaryButton, sectionLabel } from "@/lib/ui";
 import { usePlanItemsSaver } from "@/lib/use-plan-items-saver";
+import { PageSpinner } from "@/components/Spinner";
 
 export default function ArrangePage({
   params,
@@ -53,6 +54,7 @@ export default function ArrangePage({
         if (cancelled) return;
         setPlan(p);
         setItems(p.items);
+        if (p.items.length === 0) setAdding(true); // skipped the template: start at the price list
         setCatalog(c);
         setExplanations(e);
       })
@@ -106,7 +108,7 @@ export default function ArrangePage({
     return (
       <div className="flex-1 text-ink">
         <AppHeader note="Sample estimate" badge="Vet setup" />
-        <main className="mx-auto max-w-7xl px-4 py-6 text-muted sm:px-8">Loading…</main>
+        <PageSpinner />
       </div>
     );
 

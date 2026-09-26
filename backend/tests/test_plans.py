@@ -51,6 +51,9 @@ def test_create_from_suggested_items(client):
     edited = client.patch(f"/api/plans/{plan['id']}", json={"items": plan["items"][:1]}).json()
     assert len(edited["items"]) == 1 and len(edited["suggested"]) == 2
 
+    blank = client.post("/api/plans", json={**MOCHI, "items": [], "template_id": None}).json()
+    assert blank["source"] == "blank" and blank["items"] == [] and blank["suggested"] == []
+
     bad = client.post("/api/plans", json={**MOCHI, "items": [{"catalog_id": "nope", "group": "soon"}]})
     assert bad.status_code == 422
     assert client.post("/api/plans", json=MOCHI).status_code == 422
@@ -77,3 +80,15 @@ def test_email(client, monkeypatch):
 
     assert client.post(f"/api/plans/{plan['id']}/email", json={"email": "a@b.c"}).json() == {"sent": True}
     assert sent[-1]["to"] == ["a@b.c"]
+
+
+def test_add_symptom(client):
+    r = client.post("/api/symptoms", json={"label": "  pale   gums "})
+    assert r.status_code == 201 and r.json() == {"id": "pale-gums", "label": "Pale gums", "species": ["cat", "dog"]}
+    assert client.get("/api/symptoms").json()[-1]["id"] == "pale-gums"
+    # Same name (any case) returns the existing symptom instead of a duplicate.
+    assert client.post("/api/symptoms", json={"label": "VOMITING"}).json()["id"] == "vomiting"
+    assert client.post("/api/symptoms", json={"label": "   "}).status_code == 422
+    # Usable in /suggest right away (template fallback here: nothing matches pale gums alone).
+    r = client.post("/api/suggest", json={"species": "cat", "age_years": 3, "symptoms": ["pale-gums", "vomiting"]}).json()
+    assert r["source"] == "template"

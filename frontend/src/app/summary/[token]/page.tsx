@@ -10,6 +10,7 @@ import { api } from "@/lib/api";
 import { SPLIT_PAYMENTS, fullTotal, money, todayTotal } from "@/lib/plan-math";
 import type { Group, Plan, PlanItem } from "@/lib/types";
 import { GROUP_TONE, card, secondaryButton, sectionLabel } from "@/lib/ui";
+import { PageSpinner } from "@/components/Spinner";
 
 const BADGE = "Take-home plan";
 
@@ -54,7 +55,7 @@ export default function SummaryPage({ params }: { params: Promise<{ token: strin
     return (
       <div className="flex-1 text-ink">
         <AppHeader badge={BADGE} />
-        <main className="mx-auto max-w-7xl px-4 py-6 text-muted sm:px-8">Loading…</main>
+        <PageSpinner />
       </div>
     );
 

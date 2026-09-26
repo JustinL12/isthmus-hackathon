@@ -1,78 +1,31 @@
 "use client";
 
-// Shared decision screen (the tablet the vet and owner look at together).
-// Two steps on one page: an intro with key numbers over a Madison backdrop, then
-// "Get started" ripples the backdrop to cream and the decision tools float up.
-// The title block stays mounted across both steps so it never moves.
+// Shared screen (the tablet the vet and owner look at together), step 1 of 3: a welcome with
+// the key facts over a Madison backdrop. "Get started" ripples the backdrop to cream, then
+// opens /plan/[id]/explain (step 2), which starts on the same cream. Step 3 is /plan/[id]/choose.
 // /plan/demo runs the Mochi/Alex sample locally with no backend.
 // TODO: live sync across devices (Supabase realtime).
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  type MouseEvent,
-  type ReactNode,
-  use,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
-import { MotionConfig, motion } from "framer-motion";
+import { type ReactNode, use, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { PlanHeader } from "@/components/AppChrome";
-import { BudgetBar } from "@/components/BudgetBar";
-import { CareExplainer } from "@/components/CareExplainer";
 import { ChromaticLabel } from "@/components/ChromaticLabel";
 import { MagneticCard, MagneticCards } from "@/components/MagneticCards";
+import { OwnerStepper, PlanStatus, ownerStepHref } from "@/components/OwnerSteps";
 import { RippleTransition, type RippleControls } from "@/components/ui/ripple-transition";
 import { TextMorph } from "@/components/ui/text-morph";
-import { GROUP_TONE, GroupBoard } from "@/components/GroupBoard";
-import { PaymentToggle } from "@/components/PaymentToggle";
-import { TakeHomeSummary } from "@/components/TakeHomeSummary";
-import { api } from "@/lib/api";
-import { fullTotal, money, todayTotal } from "@/lib/plan-math";
-import { DEMO_PLAN_ID, samplePlan } from "@/lib/sample-plan";
-import { smoothScrollTo } from "@/lib/smooth-scroll";
-import { GROUPS, type Group, type PaymentChoice, type Plan } from "@/lib/types";
+import { usePlan } from "@/lib/use-plan";
 
 // Ripple goes from the first image to the second; module-level so the WebGL setup runs once.
 const BACKDROPS = ["/backgrounds/madison.svg", "/backgrounds/cream.svg"] as const;
 const RIPPLE_SECONDS = 1.3;
-// The cream has covered the screen by ~60% of the ripple; content starts rising then.
+// The cream has covered the screen by ~60% of the ripple; the next step opens then.
 const REVEAL_MS = 800;
-
-type Step = "intro" | "leaving" | "decide";
-
-// Title row and plan share these columns (main | sidebar).
-const PLAN_GRID =
-  "grid gap-8 md:grid-cols-[minmax(0,1fr)_280px] md:gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-8";
-
-// Pause between revealing the plan and gliding to it (see the effect using it).
-const REVEAL_SETTLE_MS = 150;
-
-// Breathing room above the plan when it's aligned to the top of the screen.
-const PLAN_SCROLL_MARGIN = 24;
-
-const planTop = (plan: HTMLElement) =>
-  Math.round(plan.getBoundingClientRect().top + window.scrollY - PLAN_SCROLL_MARGIN);
-
-function scrollToPlan(plan: HTMLElement | null) {
-  if (plan) smoothScrollTo(planTop(plan));
-}
-
-// Plan sections float up as they scroll into view (MotionConfig drops the motion for reduced-motion users).
-const RISE = {
-  initial: { opacity: 0, y: 40 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, amount: 0.1 },
-  transition: { type: "spring", stiffness: 140, damping: 22 },
-} as const;
 
 // Headline cycles through what the screen helps with. Keep each under ~36 characters:
 // TextMorph renders one line and the heading is sized to fit that.
 function Headline({ petName }: { petName: string }) {
-  // Stable array: a new one each render would restart the morph whenever an item is ticked.
+  // Stable array: a new one each render would restart the morph.
   const words = useMemo(
     () => [
       `Let's decide on ${petName}'s care together`,
@@ -86,349 +39,130 @@ function Headline({ petName }: { petName: string }) {
   return <TextMorph words={words} interval={3000} align="start" />;
 }
 
-export default function DecisionPage({ params }: { params: Promise<{ id: string }> }) {
+export default function WelcomePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const demo = id === DEMO_PLAN_ID;
   const router = useRouter();
-  const [plan, setPlan] = useState<Plan | null>(demo ? samplePlan : null);
-  const [error, setError] = useState<string | null>(null);
-  const [step, setStep] = useState<Step>("intro");
+  const { plan, error } = usePlan(id);
+  const [leaving, setLeaving] = useState(false);
   const ripple = useRef<RippleControls | null>(null);
   const backdrop = useRef<HTMLDivElement>(null);
-  const details = useRef<HTMLDivElement>(null);
-  // The plan appears once "See the full plan" (or "Skip to full plan") is clicked. It's
-  // built (hidden) as soon as the explainer starts, so revealing it is cheap.
-  const [planReady, setPlanReady] = useState(false);
-  const jumpToPlan = useRef(false);
+  const next = ownerStepHref(id, 2);
 
   useEffect(() => {
-    if (!demo) api.getPlan(id).then(setPlan).catch((e) => setError(String(e)));
-  }, [id, demo]);
+    router.prefetch(next);
+  }, [router, next]);
 
   useEffect(() => {
-    if (step !== "leaving") return;
-    const timer = window.setTimeout(() => setStep("decide"), REVEAL_MS);
+    if (!leaving) return;
+    const timer = window.setTimeout(() => router.push(next), REVEAL_MS);
     return () => window.clearTimeout(timer);
-  }, [step]);
+  }, [leaving, router, next]);
 
-  // Glide to the plan once it's revealed. Revealing it (laying out every card, waking the
-  // WebGL button) costs a heavy frame or two; starting the glide during that makes it
-  // lurch, so let the reveal paint and settle first.
-  useEffect(() => {
-    if (!planReady || !jumpToPlan.current) return;
-    let timer = 0;
-    let frame = requestAnimationFrame(() => {
-      frame = requestAnimationFrame(() => {
-        timer = window.setTimeout(() => {
-          jumpToPlan.current = false;
-          scrollToPlan(details.current);
-        }, REVEAL_SETTLE_MS);
-      });
-    });
-    return () => {
-      cancelAnimationFrame(frame);
-      window.clearTimeout(timer);
-    };
-  }, [planReady]);
-
-  // Landing on the plan: a downward scroll that starts above the plan settles with the
-  // plan's top aligned to the screen (even after overshooting). Then it lets go, so
-  // scrolling inside the plan is free; it re-arms only after going back up above it.
-  useEffect(() => {
-    if (!planReady) return;
-    let timer = 0;
-    let settledAt = window.scrollY;
-    let snapping = false;
-    const settle = () => {
-      const el = details.current;
-      if (!el) return;
-      const top = planTop(el);
-      const y = window.scrollY;
-      const from = settledAt;
-      settledAt = y;
-      if (snapping) {
-        snapping = false;
-        return;
-      }
-      const cameFromAbove = from < top - 2;
-      const movedDown = y > from + 30;
-      const landedNearPlan = y < top + window.innerHeight * 1.2 && Math.abs(y - top) > 2;
-      if (cameFromAbove && movedDown && landedNearPlan) {
-        snapping = true;
-        settledAt = top;
-        smoothScrollTo(top);
-      }
-    };
-    const onScroll = () => {
-      window.clearTimeout(timer);
-      timer = window.setTimeout(settle, 140);
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.clearTimeout(timer);
-    };
-  }, [planReady]);
-
-  if (error)
-    return (
-      <main className="flex-1 bg-cream p-8 text-ink">
-        <div className="mx-auto max-w-2xl space-y-3">
-          <p className="text-bad">Couldn&apos;t load this plan. Is the backend running? ({error})</p>
-          <Link href={`/plan/${DEMO_PLAN_ID}`} className="underline">
-            Open the Mochi demo instead
-          </Link>
-        </div>
-      </main>
-    );
-  if (!plan) return <main className="flex-1 bg-cream p-8 text-ink">Loading…</main>;
-
-  const total = todayTotal(plan.items);
-  const overBudget = plan.budget != null && total > plan.budget;
+  if (!plan) return <PlanStatus error={error} />;
   const { pet } = plan;
 
-  // Ripple out from the button; without WebGL or with reduced motion, just switch steps.
-  function getStarted(event: MouseEvent<HTMLButtonElement>) {
-    if (step !== "intro") return;
-    const button = event.currentTarget.getBoundingClientRect();
+  // Ripple out from `from` (the button), then move on; without WebGL or with reduced motion, go straight there.
+  function getStarted(from?: HTMLElement) {
+    if (leaving) return;
     const box = backdrop.current?.getBoundingClientRect();
+    const origin = from?.getBoundingClientRect();
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const started =
       !reduceMotion &&
       box != null &&
       ripple.current?.play(
-        (button.left + button.width / 2 - box.left) / box.width,
-        (button.top + button.height / 2 - box.top) / box.height,
+        origin ? (origin.left + origin.width / 2 - box.left) / box.width : 0.5,
+        origin ? (origin.top + origin.height / 2 - box.top) / box.height : 0.5,
       );
-    setStep(started ? "leaving" : "decide");
-  }
-
-  // Optimistic local update, then persist (demo mode stays local).
-  async function save(patch: Partial<Plan>) {
-    const next = { ...plan!, ...patch };
-    setPlan(next);
-    if (!demo) await api.updatePlan(id, patch);
-  }
-
-  const toggle = (itemId: string) =>
-    save({ items: plan.items.map((i) => (i.id === itemId ? { ...i, selected: !i.selected } : i)) });
-
-  const move = (itemId: string, group: Group) =>
-    save({ items: plan.items.map((i) => (i.id === itemId ? { ...i, group } : i)) });
-
-  const setGroupSelected = (group: Group, selected: boolean) =>
-    save({ items: plan.items.map((i) => (i.group === group ? { ...i, selected } : i)) });
-
-  async function agree() {
-    const agreed = await api.agreePlan(id);
-    router.push(`/summary/${agreed.share_token}`);
+    if (started) setLeaving(true);
+    else router.push(next);
   }
 
   return (
-    <MotionConfig reducedMotion="user">
-      <div data-plan-screen className="relative isolate flex-1 text-ink">
-        {/* Backdrop: Madison picture, rippled to cream on "Get started". The CSS background
-            shows the same picture before WebGL loads or if it's unavailable; the cream layer
-            on top covers it in the decide step (a plain fade when there's no ripple). */}
-        <div ref={backdrop} className="fixed inset-0 -z-10" aria-hidden>
-          <RippleTransition
-            controlRef={ripple}
-            interactive={false}
-            images={BACKDROPS}
-            duration={RIPPLE_SECONDS}
-            borderRadius={0}
-            glow={0.45}
-            pushAmt={0.12}
-            background="url(/backgrounds/madison.svg) center / cover no-repeat #f6f2ea"
-            // Once the cream layer fully covers it, hide the full-screen WebGL canvas so the
-            // browser stops redrawing it on every scroll frame (delay = the cream fade).
-            className={`min-h-0 transition-[visibility] ${step === "decide" ? "invisible delay-700" : ""}`}
-          />
-          <div
-            className={`absolute inset-0 bg-cream transition-opacity duration-500 ${
-              step === "decide" ? "opacity-100" : "opacity-0"
-            }`}
-          />
-        </div>
+    <div data-plan-screen className="relative isolate flex-1 text-ink">
+      {/* Backdrop: Madison picture, rippled to cream on "Get started". The CSS background
+          shows the same picture before WebGL loads or if it's unavailable. */}
+      <div ref={backdrop} className="fixed inset-0 -z-10" aria-hidden>
+        <RippleTransition
+          controlRef={ripple}
+          interactive={false}
+          images={BACKDROPS}
+          duration={RIPPLE_SECONDS}
+          borderRadius={0}
+          glow={0.45}
+          pushAmt={0.12}
+          background="url(/backgrounds/madison.svg) center / cover no-repeat #f6f2ea"
+          className="min-h-0"
+        />
+      </div>
 
-        <PlanHeader plan={plan} note="Sample estimate" badge="Shared screen · vet + owner" />
+      <PlanHeader plan={plan} note="Sample estimate" badge="Shared screen · vet + owner" />
 
-        <main className="mx-auto max-w-7xl px-4 py-6 sm:px-8">
-          {/* Title row: same columns as the plan grid below, so the title sits (and sizes)
-              identically in both steps. */}
-          <div className={PLAN_GRID}>
-            <div className="@container space-y-5">
-              <div className="space-y-3">
-                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-badger">
-                  <span className="h-px w-6 bg-badger" aria-hidden />
-                  Today&apos;s visit
-                </p>
-                <h1 className="text-4xl leading-[1.02] font-extrabold tracking-[-0.035em] @xl:text-5xl @3xl:text-6xl">
-                  <span className="text-badger">{pet.name}&apos;s</span> care plan
-                </h1>
-                {/* Rotating phrases are decorative; the heading carries the meaning.
-                    They can't wrap, so size from the column width, not the viewport. */}
-                <p
-                  aria-hidden
-                  className="border-l-2 border-badger/40 pl-3 font-serif text-lg leading-snug text-slate italic @xl:text-xl @3xl:text-2xl"
-                >
-                  <Headline petName={pet.name} />
-                </p>
-              </div>
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-8">
+        <OwnerStepper id={id} step={1} onForward={() => getStarted()} />
 
-              {step !== "decide" && (
-                <section
-                  aria-label="Visit overview"
-                  className={`max-w-xl pt-2 transition-all duration-300 ${
-                    step === "leaving" ? "pointer-events-none translate-y-2 opacity-0" : ""
-                  }`}
-                >
-                  <MagneticCards className="grid gap-4 @lg:grid-cols-2">
-                    <MagneticCard>
-                      <IntroCard
-                        icon={<PawIcon />}
-                        label="Patient"
-                        value={pet.name}
-                        note={pet.age_years != null ? `${pet.age_years}-year-old ${pet.species}` : pet.species}
-                      />
-                    </MagneticCard>
-                    <MagneticCard>
-                      <IntroCard
-                        icon={<CalendarIcon />}
-                        label="Visit"
-                        value={<VisitClock part="date" />}
-                        note={<VisitClock part="time" />}
-                      />
-                    </MagneticCard>
-                  </MagneticCards>
-
-                  <button
-                    onClick={getStarted}
-                    className="group mt-7 inline-block rounded-xl transition-transform duration-300 ease-out hover:scale-[1.06] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ink active:scale-[0.98] motion-reduce:transition-none motion-reduce:hover:scale-100"
-                  >
-                    <ChromaticLabel className="px-8 py-3.5 text-lg shadow-lg shadow-badger/30 transition-shadow duration-300 group-hover:shadow-xl group-hover:shadow-badger/40">
-                      Get started{" "}
-                      <span
-                        aria-hidden
-                        className="inline-block transition-transform duration-300 group-hover:translate-x-1 motion-reduce:transition-none"
-                      >
-                        →
-                      </span>
-                    </ChromaticLabel>
-                  </button>
-                </section>
-              )}
-            </div>
+        <div className="@container mt-6 max-w-4xl space-y-5">
+          <div className="space-y-3">
+            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-badger">
+              <span className="h-px w-6 bg-badger" aria-hidden />
+              Today&apos;s visit
+            </p>
+            <h1 className="text-4xl leading-[1.02] font-extrabold tracking-[-0.035em] @xl:text-5xl @3xl:text-6xl">
+              <span className="text-badger">{pet.name}&apos;s</span> care plan
+            </h1>
+            {/* Rotating phrases are decorative; the heading carries the meaning.
+                They can't wrap, so size from the column width, not the viewport. */}
+            <p
+              aria-hidden
+              className="border-l-2 border-badger/40 pl-3 font-serif text-lg leading-snug text-slate italic @xl:text-xl @3xl:text-2xl"
+            >
+              <Headline petName={pet.name} />
+            </p>
           </div>
 
-          {step === "decide" && (
-            <>
-              <div className="mt-8">
-                <CareExplainer
-                  petName={pet.name}
-                  items={plan.items}
-                  resourcesHref={`/plan/${id}/resources`}
-                  onShowPlan={() => {
-                    if (planReady) return scrollToPlan(details.current);
-                    jumpToPlan.current = true;
-                    setPlanReady(true);
-                  }}
+          <section
+            aria-label="Visit overview"
+            className={`max-w-xl pt-2 transition-all duration-300 ${
+              leaving ? "pointer-events-none translate-y-2 opacity-0" : ""
+            }`}
+          >
+            <MagneticCards className="grid gap-4 @lg:grid-cols-2">
+              <MagneticCard>
+                <IntroCard
+                  icon={<PawIcon />}
+                  label="Patient"
+                  value={pet.name}
+                  note={pet.age_years != null ? `${pet.age_years}-year-old ${pet.species}` : pet.species}
                 />
-              </div>
+              </MagneticCard>
+              <MagneticCard>
+                <IntroCard
+                  icon={<CalendarIcon />}
+                  label="Visit"
+                  value={<VisitClock part="date" />}
+                  note={<VisitClock part="time" />}
+                />
+              </MagneticCard>
+            </MagneticCards>
 
-              {/* The plan itself rises in as it scrolls into view, under the flipping explainer. */}
-              <div hidden={!planReady}>
-                <div ref={details} className={`${PLAN_GRID} mt-16 scroll-mt-6`}>
-                  <motion.div className="space-y-5" {...RISE}>
-                    <div className="flex flex-wrap gap-2 text-xs">
-                      {GROUPS.map((g) => {
-                        const groupItems = plan.items.filter((i) => i.group === g.id);
-                        const on = groupItems.length > 0 && groupItems.every((i) => i.selected);
-                        return (
-                          <button
-                            key={g.id}
-                            onClick={() => setGroupSelected(g.id, !on)}
-                            disabled={groupItems.length === 0}
-                            aria-pressed={on}
-                            className={`rounded-full border px-3 py-1 font-medium transition-colors disabled:opacity-40 ${
-                              on ? `border-transparent ${GROUP_TONE[g.id]}` : "border-line bg-white text-muted hover:text-ink"
-                            }`}
-                          >
-                            {on ? "✓ " : "+ "}
-                            {g.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <GroupBoard
-                      items={plan.items}
-                      petName={pet.name}
-                      draggable
-                      onMove={move}
-                      onToggle={toggle}
-                      detailsAlwaysVisible
-                      expandable
-                    />
-                  </motion.div>
-
-                  <motion.aside
-                    className="space-y-5 self-start rounded-2xl border border-line bg-white p-5 md:sticky md:top-6"
-                    {...RISE}
-                    transition={{ ...RISE.transition, delay: 0.12 }}
-                  >
-                    <div>
-                      <h2 className="text-xs font-semibold uppercase tracking-wider text-muted">Today&apos;s plan</h2>
-                      <p className="font-serif text-5xl tabular-nums">{money(total)}</p>
-                      <p className="text-sm text-slate">Full estimate: {money(fullTotal(plan.items))}</p>
-                    </div>
-
-                    <BudgetBar
-                      total={total}
-                      budget={plan.budget}
-                      ownerName={plan.owner_name}
-                      onBudgetChange={(budget) => save({ budget })}
-                    />
-
-                    <PaymentToggle
-                      value={plan.payment_choice}
-                      total={total}
-                      onChange={(payment_choice: PaymentChoice) => save({ payment_choice })}
-                    />
-
-                    <Link
-                      href={`/plan/${id}/resources`}
-                      className={`block text-sm underline-offset-2 hover:underline ${
-                        overBudget ? "font-semibold text-bad" : "text-muted"
-                      }`}
-                    >
-                      Can&apos;t cover it today? See lower-cost Madison options →
-                    </Link>
-
-                    <hr className="border-line" />
-
-                    <TakeHomeSummary items={plan.items} />
-
-                    <div className="space-y-2">
-                      <button
-                        onClick={agree}
-                        disabled={demo}
-                        className="block w-full rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:opacity-50"
-                      >
-                        <ChromaticLabel texture="pine">Agree &amp; send summary</ChromaticLabel>
-                      </button>
-                      {demo && (
-                        <p className="text-center text-xs text-muted">Demo mode: start from Setup to save and share.</p>
-                      )}
-                    </div>
-                  </motion.aside>
-                </div>
-              </div>
-            </>
-          )}
-        </main>
-      </div>
-    </MotionConfig>
+            <button
+              onClick={(e) => getStarted(e.currentTarget)}
+              className="group mt-7 inline-block rounded-xl transition-transform duration-300 ease-out hover:scale-[1.06] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ink active:scale-[0.98] motion-reduce:transition-none motion-reduce:hover:scale-100"
+            >
+              <ChromaticLabel className="px-8 py-3.5 text-lg shadow-lg shadow-badger/30 transition-shadow duration-300 group-hover:shadow-xl group-hover:shadow-badger/40">
+                Get started{" "}
+                <span
+                  aria-hidden
+                  className="inline-block transition-transform duration-300 group-hover:translate-x-1 motion-reduce:transition-none"
+                >
+                  →
+                </span>
+              </ChromaticLabel>
+            </button>
+          </section>
+        </div>
+      </main>
+    </div>
   );
 }
 

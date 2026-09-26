@@ -39,6 +39,8 @@ def create_plan(req: CreatePlanRequest):
             raise HTTPException(404, "Template not found")
         choices = [ItemChoice(catalog_id=cid, group=catalog[cid].default_group.get(template.id, "soon")) for cid in template.item_ids]
         source = "template"
+    elif req.items is not None:
+        choices, source = [], "blank"  # the vet adds everything from the price list
     else:
         raise HTTPException(422, "Send either items or template_id")
 

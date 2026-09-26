@@ -9,7 +9,7 @@ Group = Literal["essential", "soon", "optional"]
 PaymentChoice = Literal["pay_today", "split"]
 PlanStatus = Literal["draft", "agreed"]
 Species = Literal["cat", "dog"]
-PlanSource = Literal["suggest", "template"]
+PlanSource = Literal["suggest", "template", "blank"]
 
 
 class Explanation(BaseModel):
@@ -74,6 +74,11 @@ class Symptom(BaseModel):
     species: list[Species]
 
 
+class SymptomCreate(BaseModel):
+    label: str = Field(min_length=1, max_length=60, pattern=r"\S")
+    species: list[Species] = ["cat", "dog"]
+
+
 class Resource(BaseModel):
     id: str
     name: str
@@ -132,7 +137,7 @@ Plan.model_rebuild()  # resolve the forward reference to ItemChoice
 
 
 class CreatePlanRequest(BaseModel):
-    """Build from `items` (from /suggest) or, failing that, from `template_id`."""
+    """Build from `items` (from /suggest), else from `template_id`. `items: []` starts a blank plan."""
 
     template_id: str | None = None
     items: list[ItemChoice] | None = None

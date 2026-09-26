@@ -15,6 +15,7 @@ import { ApiError, api } from "@/lib/api";
 import { money } from "@/lib/plan-math";
 import {
   AI_DRAFT,
+  SKIP_TEMPLATE,
   type SetupDraft,
   isPatientComplete,
   optionalNumber,
@@ -26,6 +27,7 @@ import {
 } from "@/lib/setup-draft";
 import type { CatalogItem, CreatePlanRequest, SuggestRequest, SuggestResponse, Template } from "@/lib/types";
 import { card, ctaWrapper, quietLink, secondaryButton, sectionLabel } from "@/lib/ui";
+import { PageSpinner, Spinner } from "@/components/Spinner";
 
 const DEFAULT_TEMPLATE = "vomiting-senior-cat"; // the demo case
 
@@ -52,7 +54,7 @@ function Header({ draft }: { draft: SetupDraft }) {
   return (
     <AppHeader
       title={patientLine(draft)}
-      subtitle={[draft.reason.trim(), `Owner: ${draft.ownerName.trim()}`].filter(Boolean).join(" · ")}
+      subtitle={`Owner: ${draft.ownerName.trim()}`}
       note="Sample estimate"
       badge="Vet setup"
     />
@@ -133,7 +135,7 @@ export default function TemplateStep() {
     setAiAttempt((n) => n + 1);
   };
 
-  if (!hydrated || !complete) return <StatusShell>Loading…</StatusShell>;
+  if (!hydrated || !complete) return <StatusShell><PageSpinner /></StatusShell>;
 
   if (loadError) {
     return (
@@ -166,26 +168,31 @@ export default function TemplateStep() {
 
   const symptomText = draft.symptoms.map((s) => symptomLabels[s] ?? s).join(", ");
   const aiName = symptomText ? symptomText.charAt(0).toUpperCase() + symptomText.slice(1).toLowerCase() : "AI draft";
+  // The visit reason the owner sees: the symptoms, else what the vet started from.
+  const visitReason = (fallback: string) => (symptomText ? aiName : fallback);
   const pickedTemplate = templates.find((t) => t.id === draft.templateId);
   // Explicit pick, else the AI draft when there are symptoms, else the best template.
   const choice: string | null =
     draft.templateId === AI_DRAFT && aiAvailable
       ? AI_DRAFT
-      : pickedTemplate
-        ? pickedTemplate.id
-        : aiAvailable && draft.templateId !== AI_DRAFT
-          ? AI_DRAFT
-          : (defaultTemplate(templates, draft)?.id ?? null);
-  const selected = choice === AI_DRAFT ? null : (templates.find((t) => t.id === choice) ?? null);
+      : draft.templateId === SKIP_TEMPLATE
+        ? SKIP_TEMPLATE
+        : pickedTemplate
+          ? pickedTemplate.id
+          : aiAvailable && draft.templateId !== AI_DRAFT
+            ? AI_DRAFT
+            : (defaultTemplate(templates, draft)?.id ?? null);
+  const selected = templates.find((t) => t.id === choice) ?? null;
   // Template that suggests groups for items the vet adds in step 4.
   const aiFallbackId = ai.status === "done" ? ai.res.fallback_template_id : null;
-  const hintTemplate =
-    choice === AI_DRAFT
-      ? (templates.find((t) => t.id === aiFallbackId) ?? defaultTemplate(templates, draft))
-      : selected;
+  const hintTemplate = selected ?? templates.find((t) => t.id === aiFallbackId) ?? defaultTemplate(templates, draft);
 
   const body: CreatePlanRequest | null =
-    choice === AI_DRAFT ? planRequest(draft, { id: AI_DRAFT, name: aiName }) : selected ? planRequest(draft, selected) : null;
+    choice === AI_DRAFT || choice === SKIP_TEMPLATE
+      ? planRequest(draft, { id: choice, reason: visitReason("General visit") })
+      : selected
+        ? planRequest(draft, { id: selected.id, reason: visitReason(selected.name) })
+        : null;
   const key = body ? requestKey(body) : null;
   const sameAsBuilt = draft.plan != null && draft.plan.key === key;
   // Built once already, but the patient details, symptoms or choice have changed since.
@@ -211,13 +218,16 @@ export default function TemplateStep() {
         updateDraft({ templateId: choice });
       } else {
         if (choice === AI_DRAFT && !aiDraft) throw new Error("AI draft not ready");
-        const request: CreatePlanRequest = aiDraft && choice === AI_DRAFT
-          ? {
-              ...body,
-              template_id: undefined,
-              items: aiDraft.items.map(({ catalog_id, group, reason }) => ({ catalog_id, group, reason })),
-            }
-          : body;
+        const request: CreatePlanRequest =
+          aiDraft && choice === AI_DRAFT
+            ? {
+                ...body,
+                template_id: undefined,
+                items: aiDraft.items.map(({ catalog_id, group, reason }) => ({ catalog_id, group, reason })),
+              }
+            : choice === SKIP_TEMPLATE
+              ? { ...body, template_id: undefined, items: [] } // empty plan; the vet adds items in step 4
+              : body;
         const plan = await api.createPlan(request);
         planId = plan.id;
         updateDraft({ templateId: choice, plan: { id: plan.id, key } });
@@ -366,7 +376,7 @@ export default function TemplateStep() {
                 Pick a <span className="text-badger">starting plan</span>
               </>
             }
-            subtitle={`Start from the AI's draft for ${draft.petName.trim()}'s symptoms or a usual visit template. You can adjust every item next.`}
+            subtitle={`Start from the AI's draft for ${draft.petName.trim()}'s symptoms, a usual visit template, or nothing at all. You can adjust every item next.`}
           />
         </div>
 
@@ -375,7 +385,7 @@ export default function TemplateStep() {
             <legend className="sr-only">Starting plan</legend>
             {ai.status !== "off" && <TemplateGroup title="From the symptoms">{aiCard()}</TemplateGroup>}
             {templates.length === 0 ? (
-              <p className="text-muted">Loading templates…</p>
+              <Spinner label="Loading templates" />
             ) : (
               <>
                 <TemplateGroup title={matching.length ? `Visit templates for ${draft.species}s` : "Visit templates"}>
@@ -386,6 +396,25 @@ export default function TemplateStep() {
                 )}
               </>
             )}
+            <TemplateGroup title="No template">
+              <label className={optionClass(choice === SKIP_TEMPLATE)}>
+                <input
+                  type="radio"
+                  name="template"
+                  value={SKIP_TEMPLATE}
+                  checked={choice === SKIP_TEMPLATE}
+                  onChange={() => updateDraft({ templateId: SKIP_TEMPLATE })}
+                  className="sr-only"
+                />
+                <span className="flex flex-wrap items-center gap-2">
+                  <span className="text-lg font-semibold">Skip template</span>
+                  {choice === SKIP_TEMPLATE && selectedTag}
+                </span>
+                <span className="mt-1 block text-sm text-slate">
+                  Start with an empty plan and add each item from the price list yourself.
+                </span>
+              </label>
+            </TemplateGroup>
           </fieldset>
 
           <aside className={`${card} space-y-4 self-start p-5 md:sticky md:top-6`}>
@@ -401,12 +430,6 @@ export default function TemplateStep() {
                 <dd className="text-lg font-semibold">{draft.petName.trim()}</dd>
                 <dd className="text-slate">{age != null ? `${age}-year-old ${draft.species}` : draft.species}</dd>
               </div>
-              {draft.reason.trim() && (
-                <div>
-                  <dt className="sr-only">Reason for visit</dt>
-                  <dd className="text-slate">{draft.reason.trim()}</dd>
-                </div>
-              )}
               <div className="pt-2">
                 <dt className="inline text-muted">Owner: </dt>
                 <dd className="inline">{draft.ownerName.trim()}</dd>

@@ -2,7 +2,7 @@
 
 // Vet setup step 1 of 4: patient and owner. Step 2 (/setup/symptoms) takes the symptoms, step 3
 // (/setup/template) picks the AI draft or a visit template, step 4 (/plan/[id]/arrange) sorts the items.
-// Open with ?new=1 to start a blank visit; plain /setup resumes this tab's draft.
+// Open with ?new=1 to start a blank visit, or ?demo=1 for the Mochi demo; plain /setup resumes this tab's draft.
 
 import { useRouter } from "next/navigation";
 import { type FormEvent, type ReactNode, use, useEffect, useRef } from "react";
@@ -11,6 +11,7 @@ import { ChromaticLabel } from "@/components/ChromaticLabel";
 import { SetupStepper } from "@/components/setup/SetupStepper";
 import { resetDraft, updateDraft, useHydrated, useSetupDraft } from "@/lib/setup-draft";
 import { card, ctaWrapper, fieldLabel, input, inputBase, sectionLabel, segmentOption, segmentTrack } from "@/lib/ui";
+import { PageSpinner } from "@/components/Spinner";
 
 function Shell({ children }: { children: ReactNode }) {
   return (
@@ -26,21 +27,24 @@ export default function PatientStep({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const fresh = use(searchParams).new != null;
+  const query = use(searchParams);
+  const demo = query.demo != null;
+  const fresh = query.new != null || demo;
   const router = useRouter();
   const draft = useSetupDraft();
   const hydrated = useHydrated();
   const form = useRef<HTMLFormElement>(null);
 
-  // "Start a visit plan" links: clear the last visit, then drop ?new so back/reload resume instead.
+  // "Start a visit plan" and "Open the Mochi demo" links: replace the last visit, then drop the
+  // query so back/reload resume instead.
   useEffect(() => {
     if (!fresh) return;
-    resetDraft();
+    resetDraft(demo);
     router.replace("/setup");
-  }, [fresh, router]);
+  }, [fresh, demo, router]);
 
   // Wait for the saved draft (browser only) so the form doesn't flash the defaults first.
-  if (fresh || !hydrated) return <Shell><p className="text-muted">Loading…</p></Shell>;
+  if (fresh || !hydrated) return <Shell><PageSpinner /></Shell>;
 
   function next(e: FormEvent) {
     e.preventDefault(); // only reached once the browser's form validation passes
@@ -116,15 +120,6 @@ export default function PatientStep({
             />
           </label>
           <label className={fieldLabel}>
-            Reason for visit <span className="font-normal text-muted">(optional)</span>
-            <input
-              className={`mt-1 ${input}`}
-              value={draft.reason}
-              onChange={(e) => updateDraft({ reason: e.target.value })}
-              placeholder="e.g. Vomiting for 2 days"
-            />
-          </label>
-          <label className={fieldLabel}>
             Owner name
             <input
               className={`mt-1 ${input}`}
@@ -152,7 +147,6 @@ export default function PatientStep({
             </span>
           </label>
         </div>
-        <p className="text-sm text-muted">If you leave the reason blank, the symptoms or visit template name is used.</p>
         <div className="flex justify-end">
           <button type="submit" className={`w-full sm:w-auto ${ctaWrapper}`}>
             <ChromaticLabel className="px-8 py-3.5 text-base shadow-lg shadow-badger/30">

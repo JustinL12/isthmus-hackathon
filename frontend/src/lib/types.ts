@@ -100,7 +100,7 @@ export interface Plan {
   symptoms: string[];
   notes: string | null;
   owner_email: string | null;
-  source: "suggest" | "template";
+  source: "suggest" | "template" | "blank"; // blank = the vet skipped the template and added items by hand
   suggested: ItemChoice[]; // the AI draft as first shown; compared with the final plan to learn from vet changes
 }
 

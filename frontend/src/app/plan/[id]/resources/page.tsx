@@ -10,6 +10,7 @@ import { api } from "@/lib/api";
 import { DEMO_PLAN_ID, samplePlan } from "@/lib/sample-plan";
 import type { Plan, Resource } from "@/lib/types";
 import { card, secondaryButton } from "@/lib/ui";
+import { Spinner } from "@/components/Spinner";
 
 const BADGE = "Shared screen · vet + owner";
 
@@ -66,7 +67,7 @@ export default function ResourcesPage({ params }: { params: Promise<{ id: string
             Couldn&apos;t load the options. Check that the Isthmus Care server is running, then reload.
           </p>
         ) : resources == null ? (
-          <p className="text-muted">Loading options…</p>
+          <Spinner label="Loading options" />
         ) : (
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {resources.map((r) => (
@@ -96,7 +97,7 @@ export default function ResourcesPage({ params }: { params: Promise<{ id: string
           </ul>
         )}
 
-        <Link href={`/plan/${id}`} className={secondaryButton}>
+        <Link href={`/plan/${id}/choose`} className={secondaryButton}>
           ← Back to {plan ? `${plan.pet.name}'s plan` : "the plan"}
         </Link>
       </main>

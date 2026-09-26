@@ -97,10 +97,11 @@ def clear_caches() -> None:
 
 def reset_memory() -> None:
     """Tests: throw away in-memory edits and plans."""
-    global _mem_catalog, _mem_explanations
-    _mem_catalog = _mem_explanations = None
+    global _mem_catalog, _mem_explanations, _mem_symptoms
+    _mem_catalog = _mem_explanations = _mem_symptoms = None
     _plans.clear()
     clear_caches()
+    symptoms.cache_clear()
 
 
 # ---- Catalog edits (clinic price list) ----
@@ -144,9 +145,36 @@ def save_catalog_item(item: CatalogItem, explanation: Explanation | None) -> Cat
     return catalog_detail(item.id)
 
 
+_mem_symptoms: dict[str, dict] | None = None
+
+
 @cache
 def symptoms() -> dict[str, Symptom]:
-    return {s["id"]: Symptom(**s) for s in load_json("symptoms.json")}
+    """Seed symptoms plus any the vets added, in the order they were added."""
+    global _mem_symptoms
+    if engine():
+        rows = _rows("select id, label, species from symptoms order by created_at, id")
+    else:
+        if _mem_symptoms is None:
+            _mem_symptoms = {s["id"]: s for s in load_json("symptoms.json")}
+        rows = list(_mem_symptoms.values())
+    return {r["id"]: Symptom(**r) for r in rows}
+
+
+def add_symptom(symptom: Symptom) -> Symptom:
+    if engine():
+        from sqlalchemy import text
+
+        with engine().begin() as conn:
+            conn.execute(
+                text("insert into symptoms (id, label, species) values (:id, :label, :species) on conflict (id) do nothing"),
+                symptom.model_dump(),
+            )
+    else:
+        symptoms()  # load the seed list first
+        _mem_symptoms[symptom.id] = symptom.model_dump()
+    symptoms.cache_clear()
+    return symptoms()[symptom.id]
 
 
 @cache
