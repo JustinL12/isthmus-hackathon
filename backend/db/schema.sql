@@ -1,4 +1,4 @@
--- ClearCare app database (Neon Postgres).
+-- Isthmus Care app database (Neon Postgres).
 -- Safe to re-run: `python -m scripts.seed` applies this, then upserts app/data/*.json.
 
 create table if not exists catalog_items (

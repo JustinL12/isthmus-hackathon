@@ -14,7 +14,7 @@ from .services import claude, databricks, email  # noqa: E402
 
 logging.basicConfig(level=logging.INFO)
 
-app = FastAPI(title="ClearCare API")
+app = FastAPI(title="Isthmus Care API")
 
 app.add_middleware(
     CORSMiddleware,

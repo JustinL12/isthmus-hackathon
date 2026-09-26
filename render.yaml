@@ -1,7 +1,7 @@
 # Render blueprint: New > Blueprint > pick this repo. Secrets are entered in the dashboard.
 services:
   - type: web
-    name: clearcare-api
+    name: isthmus-api
     runtime: python
     rootDir: backend
     plan: free
@@ -12,7 +12,7 @@ services:
       - key: PYTHON_VERSION
         value: 3.12.7
       - key: CORS_ORIGINS
-        sync: false   # e.g. https://clearcare.vercel.app,http://localhost:3000
+        sync: false   # e.g. https://isthmus.vercel.app,http://localhost:3000
       - key: PUBLIC_APP_URL
         sync: false   # frontend URL, used in share links and emails
       - key: DATABASE_URL
@@ -28,7 +28,7 @@ services:
       - key: DATABRICKS_CATALOG
         sync: false
       - key: DATABRICKS_SCHEMA
-        value: clearcare
+        value: isthmus
       - key: RESEND_API_KEY
         sync: false
       - key: EMAIL_FROM

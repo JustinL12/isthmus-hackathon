@@ -8,7 +8,7 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "ClearCare",
+  title: "Isthmus Care",
   description: "Turn a vet estimate into a clear plan you can afford.",
 };
 
