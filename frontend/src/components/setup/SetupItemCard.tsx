@@ -41,6 +41,7 @@ export function SetupItemCard({
         <div className="min-w-0 flex-1 pt-2">
           <p className="font-semibold leading-tight">{item.name}</p>
           {code && <p className="text-xs text-muted">{code}</p>}
+          {item.reason && <p className="mt-1 text-sm text-slate">AI: {item.reason}</p>}
         </div>
         <span className="pt-2 text-lg font-semibold tabular-nums">{money(item.price)}</span>
         <button

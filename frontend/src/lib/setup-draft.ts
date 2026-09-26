@@ -1,4 +1,4 @@
-// What the vet has entered in vet setup steps 1–2, shared between the step pages.
+// What the vet has entered in vet setup steps 1–3, shared between the step pages.
 // Kept in sessionStorage (one tab = one visit), so the step arrows, the browser's back
 // button and a reload all keep it. Read through useSetupDraft(); change with updateDraft().
 
@@ -12,8 +12,10 @@ export interface SetupDraft {
   reason: string;
   ownerName: string;
   budget: string; // raw input text; "" = not given
-  templateId: string; // "" = not picked yet (step 2 preselects one)
-  /** The plan step 2 built from this draft, and the request that built it (see planRequest). */
+  symptoms: string[]; // symptom ids (step 2)
+  notes: string; // vet notes for the AI draft (step 2)
+  templateId: string; // "" = not picked yet (step 3 preselects one); AI_DRAFT = the AI's draft
+  /** The plan step 3 built from this draft, and the request that built it (see planRequest). */
   plan: { id: string; key: string } | null;
 }
 
@@ -25,9 +27,14 @@ export const DEFAULT_DRAFT: SetupDraft = {
   reason: "Vomiting for 2 days",
   ownerName: "Alex",
   budget: "400",
+  symptoms: ["vomiting", "not-eating"],
+  notes: "",
   templateId: "",
   plan: null,
 };
+
+/** templateId meaning "build from the AI's draft for these symptoms" instead of a fixed template. */
+export const AI_DRAFT = "ai";
 
 const STORAGE_KEY = "isthmus.setupDraft";
 let current: SetupDraft | null = null; // loaded from sessionStorage on first client read
@@ -47,6 +54,10 @@ function sanitize(raw: unknown): SetupDraft {
     reason: str(r.reason, DEFAULT_DRAFT.reason),
     ownerName: str(r.ownerName, DEFAULT_DRAFT.ownerName),
     budget: str(r.budget, DEFAULT_DRAFT.budget),
+    symptoms: Array.isArray(r.symptoms)
+      ? r.symptoms.filter((s): s is string => typeof s === "string")
+      : DEFAULT_DRAFT.symptoms,
+    notes: str(r.notes, ""),
     templateId: str(r.templateId, ""),
     plan: plan && typeof plan.id === "string" && typeof plan.key === "string" ? { id: plan.id, key: plan.key } : null,
   };
@@ -116,7 +127,7 @@ export const isPatientComplete = (d: SetupDraft) =>
   validNumber(d.age, 0, 40) &&
   validNumber(d.budget, 0, Number.POSITIVE_INFINITY);
 
-/** POST /plans body for this draft and template. */
+/** POST /plans body for this draft and template. For AI_DRAFT, the caller swaps template_id for the draft's items. */
 export function planRequest(d: SetupDraft, template: { id: string; name: string }): CreatePlanRequest {
   return {
     template_id: template.id,
@@ -128,13 +139,15 @@ export function planRequest(d: SetupDraft, template: { id: string; name: string 
     },
     owner_name: d.ownerName.trim(),
     budget: optionalNumber(d.budget),
+    symptoms: d.symptoms,
+    notes: d.notes.trim() || null,
   };
 }
 
-/** Identifies a request, so step 2 can tell whether the plan it built still matches the draft. */
+/** Identifies a request, so step 3 can tell whether the plan it built still matches the draft. */
 export const requestKey = (body: CreatePlanRequest) => JSON.stringify(body);
 
-/** Draft describing an existing plan (going back from step 3 when this tab has no draft for it). */
+/** Draft describing an existing plan (going back from step 4 when this tab has no draft for it). */
 export function draftFromPlan(plan: Plan, templateId: string | null): SetupDraft {
   const d: SetupDraft = {
     petName: plan.pet.name,
@@ -143,15 +156,17 @@ export function draftFromPlan(plan: Plan, templateId: string | null): SetupDraft
     reason: plan.pet.reason ?? "",
     ownerName: plan.owner_name,
     budget: plan.budget == null ? "" : String(plan.budget),
-    templateId: templateId ?? "",
+    symptoms: plan.symptoms,
+    notes: plan.notes ?? "",
+    templateId: plan.source === "suggest" ? AI_DRAFT : (templateId ?? ""),
     plan: null,
   };
   // The plan's reason is already filled in, so the template name isn't needed to rebuild the request.
-  // Without the template the request can't be rebuilt: an empty key never matches, so step 2
+  // Without the template the request can't be rebuilt: an empty key never matches, so step 3
   // warns that continuing starts a fresh item list instead of silently replacing this plan.
   d.plan = {
     id: plan.id,
-    key: templateId ? requestKey(planRequest(d, { id: templateId, name: d.reason })) : "",
+    key: d.templateId ? requestKey(planRequest(d, { id: d.templateId, name: d.reason })) : "",
   };
   return d;
 }

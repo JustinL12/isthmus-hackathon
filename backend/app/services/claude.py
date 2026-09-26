@@ -4,7 +4,7 @@ import os
 
 from .. import store
 from ..models import Explanation, ItemChoice, ParsedLineItem, SuggestRequest
-from .databricks import SimilarCases
+from .databricks import ItemStat, SimilarCases
 
 MODEL = "claude-sonnet-5"
 GROUPS = ["essential", "soon", "optional"]
@@ -48,23 +48,32 @@ the pet owner also sees. Pick items only from the catalog. Group them:
 - soon: important within 1-2 weeks
 - optional: nice to have
 Lean on what similar past cases used, but adjust for this pet's age, species and notes. \
-Keep the list focused (usually 4-9 items). Each reason is one short, plain-language \
+Corrections from this clinic's vets outrank the rest of the history: drop items they \
+usually remove from drafts, include items they usually add. Keep the list focused (usually 4-9 items). Each reason is one short, plain-language \
 sentence an owner can understand. The vet reviews and makes the final call."""
+
+
+def _history_line(s: ItemStat, case_count: int, name: str) -> str:
+    line = f"- {s.catalog_id} ({name}): used in {s.count}/{case_count} cases, usually '{s.group}'"
+    feedback = []
+    if s.suggested:
+        feedback.append(f"vets removed it {s.removed} of {s.suggested} times it was drafted")
+    if s.added:
+        feedback.append(f"vets added it to a draft {s.added} time{'s' if s.added != 1 else ''}")
+    return line + (f"; {'; '.join(feedback)}" if feedback else "")
 
 
 async def suggest_items(req: SuggestRequest, similar: SimilarCases) -> list[ItemChoice]:
     catalog, symptoms = store.catalog(), store.symptoms()
     labels = ", ".join(symptoms[s].label if s in symptoms else s for s in req.symptoms)
-    history = "\n".join(
-        f"- {s.catalog_id} ({catalog[s.catalog_id].name}): used in {s.count}/{similar.case_count} cases, usually '{s.group}'"
-        for s in similar.items
-    )
+    history = "\n".join(_history_line(s, similar.case_count, catalog[s.catalog_id].name) for s in similar.items)
     menu = "\n".join(f"- {c.id}: {c.name} (${c.price:.0f})" for c in catalog.values())
     prompt = (
         f"Pet: {req.species}, age {req.age_years if req.age_years is not None else 'unknown'}\n"
         f"Symptoms: {labels}\n"
         f"Vet notes: {req.notes or 'none'}\n\n"
-        f"What {similar.case_count} similar past cases used:\n{history}\n\n"
+        f"What {similar.case_count} similar past cases used ({similar.vet_case_count} are real plans "
+        f"from this clinic's vets):\n{history}\n\n"
         f"Catalog:\n{menu}"
     )
     tool = catalog_tool_schema(

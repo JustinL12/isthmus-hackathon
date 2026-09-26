@@ -68,6 +68,7 @@ def create_plan(req: CreatePlanRequest):
         notes=req.notes,
         source=source,
         items=items,
+        suggested=choices if source == "suggest" else [],
     )
     return store.save_plan(plan)
 

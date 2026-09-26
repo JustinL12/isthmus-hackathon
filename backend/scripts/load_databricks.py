@@ -2,7 +2,8 @@
 
 Run from backend/:  python -m scripts.load_databricks [--check]
 Re-running replaces `cases`; `agreed_plans` (written by the app) is kept.
---check runs a similar-case search for Mochi (vomiting senior cat) and prints it.
+--check skips the reload: it only adds any missing agreed_plans columns, then runs
+a similar-case search for Mochi (vomiting senior cat) and prints it.
 """
 
 import argparse
@@ -27,12 +28,14 @@ def main():
 
     if not args.check:
         load()
+    dbx.ensure_tables()
 
     result = dbx.similar_cases("cat", 12, ["vomiting", "not-eating", "lethargy"])
     catalog = store.catalog()
-    print(f"\nMochi check: {result.case_count} similar cases")
+    print(f"\nMochi check: {result.case_count} similar cases ({result.vet_case_count} from vets)")
     for s in result.items:
-        print(f"  {s.count:>3}  {s.group:<9}  {catalog[s.catalog_id].name}")
+        feedback = f"  vets removed {s.removed}/{s.suggested}, added {s.added}" if s.suggested or s.added else ""
+        print(f"  {s.count:>3}  {s.group:<9}  {catalog[s.catalog_id].name}{feedback}")
 
 
 def load():

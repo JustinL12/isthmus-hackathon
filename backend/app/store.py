@@ -161,9 +161,9 @@ _plans: dict[str, Plan] = {}
 
 _PLAN_COLUMNS = (
     "id", "pet", "owner_name", "owner_email", "budget", "payment_choice", "status",
-    "share_token", "symptoms", "notes", "source", "items",
+    "share_token", "symptoms", "notes", "source", "items", "suggested",
 )
-_JSON_COLUMNS = {"pet", "items"}
+_JSON_COLUMNS = {"pet", "items", "suggested"}
 
 
 def new_id() -> str:

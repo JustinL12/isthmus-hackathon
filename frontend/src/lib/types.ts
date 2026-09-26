@@ -101,6 +101,7 @@ export interface Plan {
   notes: string | null;
   owner_email: string | null;
   source: "suggest" | "template";
+  suggested: ItemChoice[]; // the AI draft as first shown; compared with the final plan to learn from vet changes
 }
 
 // ---- /suggest ----
@@ -122,6 +123,7 @@ export interface SuggestResponse {
   items: (ItemChoice & { name: string; price: number })[];
   source: "databricks+claude" | "databricks" | "template" | "none";
   similar_case_count: number;
+  vet_case_count: number; // of those, real plans from this clinic's vets
   fallback_template_id: string | null;
 }
 

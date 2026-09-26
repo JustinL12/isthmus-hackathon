@@ -116,6 +116,7 @@ class Plan(BaseModel):
     notes: str | None = None
     owner_email: str | None = None
     source: PlanSource = "template"
+    suggested: list["ItemChoice"] = []  # the AI draft as first shown, so vet changes can be learned from
 
 
 # ---- Request bodies ----
@@ -125,6 +126,9 @@ class ItemChoice(BaseModel):
     catalog_id: str
     group: Group
     reason: str | None = None
+
+
+Plan.model_rebuild()  # resolve the forward reference to ItemChoice
 
 
 class CreatePlanRequest(BaseModel):
@@ -165,6 +169,7 @@ class SuggestResponse(BaseModel):
     items: list[SuggestedItem]
     source: Literal["databricks+claude", "databricks", "template", "none"]
     similar_case_count: int = 0
+    vet_case_count: int = 0  # how many of the similar cases are real plans from this clinic
     fallback_template_id: str | None = None
 
 

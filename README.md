@@ -41,6 +41,12 @@ Frontend (Vercel) ──HTTP──> FastAPI (Render)
 
 Postgres handles the many small saves from the tablet; Databricks is only hit once per visit
 (suggestions) and after an agree (export, so suggestions learn from real plans).
+
+**How suggestions learn:** a plan built from symptoms keeps the AI's original draft (`plans.suggested`).
+On agree, the draft and the vet's final list both go to `agreed_plans`. The next similar case ranks
+real plans above synthetic ones, and tells Claude which items vets keep removing from drafts or adding
+to them, so those items drop out or show up. (Verified live: after 3 plans where the vet removed
+"Hospital stay" and added "Blood pressure", the next draft for the same symptoms did the same.)
 Every service is optional: with no keys the API runs on JSON seed data + in-memory plans, and
 suggestions fall back to the best-matching template. `GET /health` shows what's active.
 
@@ -113,7 +119,8 @@ npm run dev
 
 - [ ] Vet-student review of catalog prices and explanations
 - [x] Add/remove items and vet notes on the arrange screen
-- [ ] Setup page: symptom chips → `/suggest`; summary page: PDF + email buttons
+- [x] Setup page: symptom chips → `/suggest` (templates are the fallback)
+- [ ] Summary page: PDF + email buttons
 - [ ] Split-with-roommate approvals (needs a `shares` table)
 - [ ] Deploy: Vercel (frontend) + Render (backend, `render.yaml`)
 - [ ] Stretch: estimate PDF upload, vet student trainer

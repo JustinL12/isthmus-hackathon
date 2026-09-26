@@ -34,6 +34,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json();
 }
 
+/** Wake Render and the Databricks warehouse ahead of a /suggest call. Fire and forget. */
+export function warmUp(): void {
+  fetch(`${API_URL}/health?warm=true`).catch(() => {});
+}
+
 export const api = {
   /** Active items; pass true for the clinic's list, which also includes removed ones. */
   catalog: (includeInactive = false) =>

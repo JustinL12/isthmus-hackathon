@@ -19,7 +19,7 @@ def test_mochi_template_flow(client, monkeypatch):
     monkeypatch.setattr(databricks, "export_agreed_plan", exported.append)
 
     plan = client.post("/api/plans", json={**MOCHI, "template_id": "vomiting-senior-cat"}).json()
-    assert plan["source"] == "template"
+    assert plan["source"] == "template" and plan["suggested"] == []
     assert total(plan["items"]) == 780
     assert sum(i["price"] for i in plan["items"] if i["group"] == "essential") == 360
 
@@ -46,6 +46,10 @@ def test_create_from_suggested_items(client):
     plan = client.post("/api/plans", json=body).json()
     assert plan["source"] == "suggest" and plan["symptoms"] == ["vomiting"]
     assert plan["items"][0]["reason"] == "Needed first." and plan["items"][0]["explanation"]
+    # the AI draft is kept as sent, and survives the vet's edits
+    assert [s["catalog_id"] for s in plan["suggested"]] == ["exam", "t4"]
+    edited = client.patch(f"/api/plans/{plan['id']}", json={"items": plan["items"][:1]}).json()
+    assert len(edited["items"]) == 1 and len(edited["suggested"]) == 2
 
     bad = client.post("/api/plans", json={**MOCHI, "items": [{"catalog_id": "nope", "group": "soon"}]})
     assert bad.status_code == 422

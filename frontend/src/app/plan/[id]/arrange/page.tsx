@@ -176,7 +176,7 @@ export default function ArrangePage({
     else setLeaving(null);
   }
 
-  // Back to step 2. Its "Next" returns to this plan when this tab's draft is the one that built
+  // Back to step 3. Its "Next" returns to this plan when this tab's draft is the one that built
   // it; otherwise (plan opened from a link) rebuild the draft from the plan first.
   const back = async () => {
     setLeaving("back");
@@ -196,7 +196,7 @@ export default function ArrangePage({
       <PlanHeader plan={plan} note="Sample estimate" badge="Vet setup" />
       <main className="mx-auto max-w-7xl space-y-6 px-4 pt-6 sm:px-8">
         <SetupStepper
-          step={3}
+          step={4}
           back={{ label: "Back: Visit template", onClick: () => void back(), disabled: leaving != null }}
           forward={{
             label: `Next: Review with ${plan.owner_name}`,
@@ -206,7 +206,7 @@ export default function ArrangePage({
         />
         <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
           <PageIntro
-            eyebrow="Step 3 of 3 · Vet setup"
+            eyebrow="Step 4 of 4 · Vet setup"
             title={
               <>
                 <span className="text-badger">{pet.name}&apos;s</span> estimate
@@ -237,6 +237,11 @@ export default function ArrangePage({
           </dl>
         </div>
 
+        {plan.source === "suggest" && (
+          <p className="rounded-xl bg-primary-soft px-4 py-3 text-sm text-primary">
+            AI draft from similar past cases. Your changes here teach future drafts for these symptoms.
+          </p>
+        )}
         <p className="text-sm text-slate">
           The app suggested a group for each item. Tap a group to open it, and drag items onto another group (or use
           each card&apos;s group menu) to move them. Then review the plan with {plan.owner_name}.

@@ -2,7 +2,7 @@
 
 import { focusRing } from "@/lib/ui";
 
-export const SETUP_STEPS = ["Patient", "Visit template", "Sort items"] as const;
+export const SETUP_STEPS = ["Patient", "Symptoms", "Visit template", "Sort items"] as const;
 
 export interface StepNav {
   /** Where the arrow goes, e.g. "Next: Visit template". Used as its accessible name and tooltip. */
@@ -12,11 +12,11 @@ export interface StepNav {
 }
 
 /**
- * Vet setup progress (Patient → Visit template → Sort items) between a back arrow and a
+ * Vet setup progress (Patient → Symptoms → Visit template → Sort items) between a back arrow and a
  * forward arrow. Leave `back`/`forward` out where there's no step to go to; the arrow stays
  * in place but disabled so the bar doesn't shift between steps.
  */
-export function SetupStepper({ step, back, forward }: { step: 1 | 2 | 3; back?: StepNav; forward?: StepNav }) {
+export function SetupStepper({ step, back, forward }: { step: 1 | 2 | 3 | 4; back?: StepNav; forward?: StepNav }) {
   return (
     <nav aria-label="Vet setup steps" className="flex items-center gap-2 sm:gap-4">
       <ArrowButton direction="back" nav={back} />

@@ -18,6 +18,7 @@ export const samplePlan: Plan = {
   notes: null,
   owner_email: null,
   source: "template",
+  suggested: [],
   items: [
     {
       id: "demo-exam",

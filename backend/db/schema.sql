@@ -57,3 +57,6 @@ create table if not exists plans (
 -- Clinic price-list edits (added after launch, safe to re-run).
 alter table catalog_items add column if not exists active boolean not null default true;
 alter table catalog_items add column if not exists updated_at timestamptz not null default now();
+
+-- The AI draft a plan started from, so vet changes can be learned from.
+alter table plans add column if not exists suggested jsonb not null default '[]';

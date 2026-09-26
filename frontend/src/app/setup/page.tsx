@@ -1,7 +1,7 @@
 "use client";
 
-// Vet setup step 1 of 3: patient and owner. Step 2 (/setup/template) picks the visit template
-// and builds the plan; step 3 (/plan/[id]/arrange) sorts its items.
+// Vet setup step 1 of 4: patient and owner. Step 2 (/setup/symptoms) takes the symptoms, step 3
+// (/setup/template) picks the AI draft or a visit template, step 4 (/plan/[id]/arrange) sorts the items.
 // Open with ?new=1 to start a blank visit; plain /setup resumes this tab's draft.
 
 import { useRouter } from "next/navigation";
@@ -15,7 +15,7 @@ import { card, ctaWrapper, fieldLabel, input, inputBase, sectionLabel, segmentOp
 function Shell({ children }: { children: ReactNode }) {
   return (
     <div className="flex-1 text-ink">
-      <AppHeader title="New visit plan" subtitle="Step 1 of 3" badge="Vet setup" />
+      <AppHeader title="New visit plan" subtitle="Step 1 of 4" badge="Vet setup" />
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-8">{children}</main>
     </div>
   );
@@ -44,7 +44,7 @@ export default function PatientStep({
 
   function next(e: FormEvent) {
     e.preventDefault(); // only reached once the browser's form validation passes
-    router.push("/setup/template");
+    router.push("/setup/symptoms");
   }
 
   const notBlank = { required: true, pattern: ".*\\S.*", title: "Required" }; // `required` alone accepts spaces
@@ -52,17 +52,17 @@ export default function PatientStep({
     <Shell>
       <SetupStepper
         step={1}
-        forward={{ label: "Next: Visit template", onClick: () => form.current?.requestSubmit() }}
+        forward={{ label: "Next: Symptoms", onClick: () => form.current?.requestSubmit() }}
       />
       <div className="mt-6">
         <PageIntro
-          eyebrow="Step 1 of 3 · Vet setup"
+          eyebrow="Step 1 of 4 · Vet setup"
           title={
             <>
               Who&apos;s <span className="text-badger">visiting</span> today?
             </>
           }
-          subtitle="Start with the patient and owner. You'll pick the visit template next."
+          subtitle="Start with the patient and owner. You'll enter the symptoms next."
         />
       </div>
 
@@ -152,11 +152,11 @@ export default function PatientStep({
             </span>
           </label>
         </div>
-        <p className="text-sm text-muted">If you leave the reason blank, the visit template&apos;s name is used.</p>
+        <p className="text-sm text-muted">If you leave the reason blank, the symptoms or visit template name is used.</p>
         <div className="flex justify-end">
           <button type="submit" className={`w-full sm:w-auto ${ctaWrapper}`}>
             <ChromaticLabel className="px-8 py-3.5 text-base shadow-lg shadow-badger/30">
-              Next: visit template →
+              Next: symptoms →
             </ChromaticLabel>
           </button>
         </div>
