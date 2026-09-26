@@ -24,6 +24,11 @@
     "why": "Looks for blockages or swallowed objects.",
     "if_postponed": "Often fine to do at a recheck if vomiting improves. Come back sooner if it gets worse."
   },
+  "xrays-chest": {
+    "what": "Pictures of the chest.",
+    "why": "Shows the lungs and heart, the usual causes of coughing or trouble breathing.",
+    "if_postponed": "If breathing is hard or getting worse, this usually can't wait. Ask your vet."
+  },
   "urinalysis": {
     "what": "A test of a urine sample.",
     "why": "Adds detail to the blood panel on kidney health.",

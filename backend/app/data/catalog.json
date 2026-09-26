@@ -9,6 +9,8 @@
     "default_group": { "vomiting-senior-cat": "essential", "annual-wellness": "optional", "diarrhea-dog": "soon" } },
   { "id": "xrays-abd", "name": "Belly X-rays", "code": "IM500", "price": 250, "aliases": ["abd rads", "radiographs abdomen"],
     "default_group": { "vomiting-senior-cat": "soon", "diarrhea-dog": "optional" } },
+  { "id": "xrays-chest", "name": "Chest X-rays", "code": "IM505", "price": 250, "aliases": ["thoracic rads", "chest rads", "radiographs thorax"],
+    "default_group": {} },
   { "id": "urinalysis", "name": "Urine test", "code": "LB410", "price": 70, "aliases": ["UA", "urinalysis"],
     "default_group": { "vomiting-senior-cat": "soon", "annual-wellness": "optional" } },
   { "id": "t4", "name": "Thyroid test", "code": "LB420", "price": 65, "aliases": ["T4", "total T4"],
