@@ -30,7 +30,7 @@ def is_configured() -> bool:
 
 
 def table(name: str) -> str:
-    catalog, schema = os.getenv("DATABRICKS_CATALOG", ""), os.getenv("DATABRICKS_SCHEMA", "isthmus")
+    catalog, schema = os.getenv("DATABRICKS_CATALOG", ""), (os.getenv("DATABRICKS_SCHEMA") or "isthmus")
     return f"{catalog}.{schema}.{name}" if catalog else f"{schema}.{name}"
 
 

@@ -35,7 +35,7 @@ def send_summary(plan: Plan, to: str) -> None:
         "https://api.resend.com/emails",
         headers={"Authorization": f"Bearer {os.environ['RESEND_API_KEY']}"},
         json={
-            "from": os.getenv("EMAIL_FROM", "Isthmus Care <onboarding@resend.dev>"),
+            "from": os.getenv("EMAIL_FROM") or "Isthmus Care <onboarding@resend.dev>",
             "to": [to],
             "subject": f"{plan.pet.name}'s care plan",
             "html": body,
