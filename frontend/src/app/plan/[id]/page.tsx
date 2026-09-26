@@ -19,7 +19,9 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
+import { MotionConfig, motion } from "framer-motion";
 import { BudgetBar } from "@/components/BudgetBar";
+import { CareExplainer } from "@/components/CareExplainer";
 import { ChromaticLabel } from "@/components/ChromaticLabel";
 import { MagneticCard, MagneticCards } from "@/components/MagneticCards";
 import { RippleTransition, type RippleControls } from "@/components/ui/ripple-transition";
@@ -30,6 +32,7 @@ import { TakeHomeSummary } from "@/components/TakeHomeSummary";
 import { api } from "@/lib/api";
 import { fullTotal, money, todayTotal } from "@/lib/plan-math";
 import { DEMO_PLAN_ID, samplePlan } from "@/lib/sample-plan";
+import { smoothScrollTo } from "@/lib/smooth-scroll";
 import { GROUPS, type Group, type PaymentChoice, type Plan } from "@/lib/types";
 
 // Ripple goes from the first image to the second; module-level so the WebGL setup runs once.
@@ -39,6 +42,31 @@ const RIPPLE_SECONDS = 1.3;
 const REVEAL_MS = 800;
 
 type Step = "intro" | "leaving" | "decide";
+
+// Title row and plan share these columns (main | sidebar).
+const PLAN_GRID =
+  "grid gap-8 md:grid-cols-[minmax(0,1fr)_280px] md:gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-8";
+
+// Pause between revealing the plan and gliding to it (see the effect using it).
+const REVEAL_SETTLE_MS = 150;
+
+// Breathing room above the plan when it's aligned to the top of the screen.
+const PLAN_SCROLL_MARGIN = 24;
+
+const planTop = (plan: HTMLElement) =>
+  Math.round(plan.getBoundingClientRect().top + window.scrollY - PLAN_SCROLL_MARGIN);
+
+function scrollToPlan(plan: HTMLElement | null) {
+  if (plan) smoothScrollTo(planTop(plan));
+}
+
+// Plan sections float up as they scroll into view (MotionConfig drops the motion for reduced-motion users).
+const RISE = {
+  initial: { opacity: 0, y: 40 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, amount: 0.1 },
+  transition: { type: "spring", stiffness: 140, damping: 22 },
+} as const;
 
 // Headline cycles through what the screen helps with. Keep each under ~36 characters:
 // TextMorph renders one line and the heading is sized to fit that.
@@ -66,6 +94,11 @@ export default function DecisionPage({ params }: { params: Promise<{ id: string 
   const [step, setStep] = useState<Step>("intro");
   const ripple = useRef<RippleControls | null>(null);
   const backdrop = useRef<HTMLDivElement>(null);
+  const details = useRef<HTMLDivElement>(null);
+  // The plan appears once "See the full plan" (or "Skip to full plan") is clicked. It's
+  // built (hidden) as soon as the explainer starts, so revealing it is cheap.
+  const [planReady, setPlanReady] = useState(false);
+  const jumpToPlan = useRef(false);
 
   useEffect(() => {
     if (!demo) api.getPlan(id).then(setPlan).catch((e) => setError(String(e)));
@@ -76,6 +109,65 @@ export default function DecisionPage({ params }: { params: Promise<{ id: string 
     const timer = window.setTimeout(() => setStep("decide"), REVEAL_MS);
     return () => window.clearTimeout(timer);
   }, [step]);
+
+  // Glide to the plan once it's revealed. Revealing it (laying out every card, waking the
+  // WebGL button) costs a heavy frame or two; starting the glide during that makes it
+  // lurch, so let the reveal paint and settle first.
+  useEffect(() => {
+    if (!planReady || !jumpToPlan.current) return;
+    let timer = 0;
+    let frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => {
+        timer = window.setTimeout(() => {
+          jumpToPlan.current = false;
+          scrollToPlan(details.current);
+        }, REVEAL_SETTLE_MS);
+      });
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+    };
+  }, [planReady]);
+
+  // Landing on the plan: a downward scroll that starts above the plan settles with the
+  // plan's top aligned to the screen (even after overshooting). Then it lets go, so
+  // scrolling inside the plan is free; it re-arms only after going back up above it.
+  useEffect(() => {
+    if (!planReady) return;
+    let timer = 0;
+    let settledAt = window.scrollY;
+    let snapping = false;
+    const settle = () => {
+      const el = details.current;
+      if (!el) return;
+      const top = planTop(el);
+      const y = window.scrollY;
+      const from = settledAt;
+      settledAt = y;
+      if (snapping) {
+        snapping = false;
+        return;
+      }
+      const cameFromAbove = from < top - 2;
+      const movedDown = y > from + 30;
+      const landedNearPlan = y < top + window.innerHeight * 1.2 && Math.abs(y - top) > 2;
+      if (cameFromAbove && movedDown && landedNearPlan) {
+        snapping = true;
+        settledAt = top;
+        smoothScrollTo(top);
+      }
+    };
+    const onScroll = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(settle, 140);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.clearTimeout(timer);
+    };
+  }, [planReady]);
 
   if (error)
     return (
@@ -132,212 +224,238 @@ export default function DecisionPage({ params }: { params: Promise<{ id: string 
   }
 
   return (
-    <div data-plan-screen className="relative isolate flex-1 text-ink">
-      {/* Backdrop: Madison picture, rippled to cream on "Get started". The CSS background
-          shows the same picture before WebGL loads or if it's unavailable; the cream layer
-          on top covers it in the decide step (a plain fade when there's no ripple). */}
-      <div ref={backdrop} className="fixed inset-0 -z-10" aria-hidden>
-        <RippleTransition
-          controlRef={ripple}
-          interactive={false}
-          images={BACKDROPS}
-          duration={RIPPLE_SECONDS}
-          borderRadius={0}
-          glow={0.45}
-          pushAmt={0.12}
-          background="url(/backgrounds/madison.svg) center / cover no-repeat #f6f2ea"
-          className="min-h-0"
-        />
-        <div
-          className={`absolute inset-0 bg-cream transition-opacity duration-500 ${
-            step === "decide" ? "opacity-100" : "opacity-0"
-          }`}
-        />
-      </div>
-
-      <header className="bg-badger text-white">
-        <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:px-8">
-          <Link href="/" className="flex shrink-0 items-center gap-2 font-serif text-2xl">
-            <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-              <circle cx="12" cy="12" r="9.5" />
-              <path d="m7.5 12.5 3 3 6-6.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            Isthmus
-          </Link>
-          <div className="hidden h-9 w-px bg-white/30 sm:block" />
-          <div className="min-w-0">
-            <p className="truncate font-medium">
-              {pet.name}
-              {pet.age_years != null && ` · ${pet.age_years}-year-old ${pet.species}`}
-            </p>
-            <p className="truncate text-sm text-white/80">
-              {[pet.reason, `Owner: ${plan.owner_name}`].filter(Boolean).join(" · ")}
-            </p>
-          </div>
-          <div className="ml-auto hidden items-center gap-3 md:flex">
-            <span className="hidden text-xs font-semibold uppercase tracking-wider whitespace-nowrap text-white/80 lg:inline">
-              Sample estimate
-            </span>
-            <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-medium whitespace-nowrap text-white ring-1 ring-white/30">
-              Shared screen · vet + owner
-            </span>
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto grid max-w-7xl gap-8 px-4 py-6 sm:px-8 md:grid-cols-[minmax(0,1fr)_280px] md:gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-8">
-        <div className="@container space-y-5">
-          <div className="space-y-3">
-            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-badger">
-              <span className="h-px w-6 bg-badger" aria-hidden />
-              Today&apos;s visit
-            </p>
-            <h1 className="text-4xl leading-[1.02] font-extrabold tracking-[-0.035em] @xl:text-5xl @3xl:text-6xl">
-              <span className="text-badger">{pet.name}&apos;s</span> care plan
-            </h1>
-            {/* Rotating phrases are decorative; the heading carries the meaning.
-                They can't wrap, so size from the column width, not the viewport. */}
-            <p
-              aria-hidden
-              className="border-l-2 border-badger/40 pl-3 font-serif text-lg leading-snug text-slate italic @xl:text-xl @3xl:text-2xl"
-            >
-              <Headline petName={pet.name} />
-            </p>
-          </div>
-
-          {step !== "decide" && (
-            <section
-              aria-label="Visit overview"
-              className={`max-w-2xl pt-2 transition-all duration-300 ${
-                step === "leaving" ? "pointer-events-none translate-y-2 opacity-0" : ""
-              }`}
-            >
-              <MagneticCards className="grid gap-5 @lg:grid-cols-2">
-                <MagneticCard>
-                  <IntroCard
-                    icon={<PawIcon />}
-                    label="Patient"
-                    value={pet.name}
-                    note={pet.age_years != null ? `${pet.age_years}-year-old ${pet.species}` : pet.species}
-                  />
-                </MagneticCard>
-                <MagneticCard>
-                  <IntroCard
-                    icon={<CalendarIcon />}
-                    label="Visit"
-                    value={<VisitClock part="date" />}
-                    note={<VisitClock part="time" />}
-                  />
-                </MagneticCard>
-              </MagneticCards>
-
-              <button
-                onClick={getStarted}
-                className="group mt-7 inline-block rounded-xl transition-transform duration-300 ease-out hover:scale-[1.06] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ink active:scale-[0.98] motion-reduce:transition-none motion-reduce:hover:scale-100"
-              >
-                <ChromaticLabel className="px-8 py-3.5 text-lg shadow-lg shadow-badger/30 transition-shadow duration-300 group-hover:shadow-xl group-hover:shadow-badger/40">
-                  Get started{" "}
-                  <span
-                    aria-hidden
-                    className="inline-block transition-transform duration-300 group-hover:translate-x-1 motion-reduce:transition-none"
-                  >
-                    →
-                  </span>
-                </ChromaticLabel>
-              </button>
-            </section>
-          )}
-
-          {step === "decide" && (
-            <div className="flex animate-float-up flex-wrap gap-2 text-xs motion-reduce:animate-none">
-              {GROUPS.map((g) => {
-                const groupItems = plan.items.filter((i) => i.group === g.id);
-                const on = groupItems.length > 0 && groupItems.every((i) => i.selected);
-                return (
-                  <button
-                    key={g.id}
-                    onClick={() => setGroupSelected(g.id, !on)}
-                    disabled={groupItems.length === 0}
-                    aria-pressed={on}
-                    className={`rounded-full border px-3 py-1 font-medium transition-colors disabled:opacity-40 ${
-                      on ? `border-transparent ${GROUP_TONE[g.id]}` : "border-line bg-white text-muted hover:text-ink"
-                    }`}
-                  >
-                    {on ? "✓ " : "+ "}
-                    {g.label}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {step === "decide" && (
-            <div className="animate-float-up motion-reduce:animate-none" style={{ animationDelay: "120ms" }}>
-              <GroupBoard
-                items={plan.items}
-                petName={pet.name}
-                draggable
-                onMove={move}
-                onToggle={toggle}
-                detailsAlwaysVisible
-              />
-            </div>
-          )}
+    <MotionConfig reducedMotion="user">
+      <div data-plan-screen className="relative isolate flex-1 text-ink">
+        {/* Backdrop: Madison picture, rippled to cream on "Get started". The CSS background
+            shows the same picture before WebGL loads or if it's unavailable; the cream layer
+            on top covers it in the decide step (a plain fade when there's no ripple). */}
+        <div ref={backdrop} className="fixed inset-0 -z-10" aria-hidden>
+          <RippleTransition
+            controlRef={ripple}
+            interactive={false}
+            images={BACKDROPS}
+            duration={RIPPLE_SECONDS}
+            borderRadius={0}
+            glow={0.45}
+            pushAmt={0.12}
+            background="url(/backgrounds/madison.svg) center / cover no-repeat #f6f2ea"
+            // Once the cream layer fully covers it, hide the full-screen WebGL canvas so the
+            // browser stops redrawing it on every scroll frame (delay = the cream fade).
+            className={`min-h-0 transition-[visibility] ${step === "decide" ? "invisible delay-700" : ""}`}
+          />
+          <div
+            className={`absolute inset-0 bg-cream transition-opacity duration-500 ${
+              step === "decide" ? "opacity-100" : "opacity-0"
+            }`}
+          />
         </div>
 
-        {step === "decide" && (
-          <aside
-            className="animate-float-up space-y-5 self-start rounded-2xl border border-line bg-white p-5 motion-reduce:animate-none md:sticky md:top-6"
-            style={{ animationDelay: "240ms" }}
-          >
-            <div>
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted">Today&apos;s plan</h2>
-              <p className="font-serif text-5xl tabular-nums">{money(total)}</p>
-              <p className="text-sm text-slate">Full estimate: {money(fullTotal(plan.items))}</p>
-            </div>
-  
-            <BudgetBar
-              total={total}
-              budget={plan.budget}
-              ownerName={plan.owner_name}
-              onBudgetChange={(budget) => save({ budget })}
-            />
-  
-            <PaymentToggle
-              value={plan.payment_choice}
-              total={total}
-              onChange={(payment_choice: PaymentChoice) => save({ payment_choice })}
-            />
-  
-            <Link
-              href={`/plan/${id}/resources`}
-              className={`block text-sm underline-offset-2 hover:underline ${
-                overBudget ? "font-semibold text-bad" : "text-muted"
-              }`}
-            >
-              Can&apos;t cover it today? See lower-cost Madison options →
+        <header className="bg-badger text-white">
+          <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:px-8">
+            <Link href="/" className="flex shrink-0 items-center gap-2 font-serif text-2xl">
+              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+                <circle cx="12" cy="12" r="9.5" />
+                <path d="m7.5 12.5 3 3 6-6.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              Isthmus
             </Link>
-  
-            <hr className="border-line" />
-  
-            <TakeHomeSummary items={plan.items} />
-  
-            <div className="space-y-2">
-              <button
-                onClick={agree}
-                disabled={demo}
-                className="block w-full rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:opacity-50"
-              >
-                <ChromaticLabel texture="pine">Agree &amp; send summary</ChromaticLabel>
-              </button>
-              {demo && (
-                <p className="text-center text-xs text-muted">Demo mode: start from Setup to save and share.</p>
+            <div className="hidden h-9 w-px bg-white/30 sm:block" />
+            <div className="min-w-0">
+              <p className="truncate font-medium">
+                {pet.name}
+                {pet.age_years != null && ` · ${pet.age_years}-year-old ${pet.species}`}
+              </p>
+              <p className="truncate text-sm text-white/80">
+                {[pet.reason, `Owner: ${plan.owner_name}`].filter(Boolean).join(" · ")}
+              </p>
+            </div>
+            <div className="ml-auto hidden items-center gap-3 md:flex">
+              <span className="hidden text-xs font-semibold uppercase tracking-wider whitespace-nowrap text-white/80 lg:inline">
+                Sample estimate
+              </span>
+              <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-medium whitespace-nowrap text-white ring-1 ring-white/30">
+                Shared screen · vet + owner
+              </span>
+            </div>
+          </div>
+        </header>
+
+        <main className="mx-auto max-w-7xl px-4 py-6 sm:px-8">
+          {/* Title row: same columns as the plan grid below, so the title sits (and sizes)
+              identically in both steps. */}
+          <div className={PLAN_GRID}>
+            <div className="@container space-y-5">
+              <div className="space-y-3">
+                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-badger">
+                  <span className="h-px w-6 bg-badger" aria-hidden />
+                  Today&apos;s visit
+                </p>
+                <h1 className="text-4xl leading-[1.02] font-extrabold tracking-[-0.035em] @xl:text-5xl @3xl:text-6xl">
+                  <span className="text-badger">{pet.name}&apos;s</span> care plan
+                </h1>
+                {/* Rotating phrases are decorative; the heading carries the meaning.
+                    They can't wrap, so size from the column width, not the viewport. */}
+                <p
+                  aria-hidden
+                  className="border-l-2 border-badger/40 pl-3 font-serif text-lg leading-snug text-slate italic @xl:text-xl @3xl:text-2xl"
+                >
+                  <Headline petName={pet.name} />
+                </p>
+              </div>
+
+              {step !== "decide" && (
+                <section
+                  aria-label="Visit overview"
+                  className={`max-w-xl pt-2 transition-all duration-300 ${
+                    step === "leaving" ? "pointer-events-none translate-y-2 opacity-0" : ""
+                  }`}
+                >
+                  <MagneticCards className="grid gap-4 @lg:grid-cols-2">
+                    <MagneticCard>
+                      <IntroCard
+                        icon={<PawIcon />}
+                        label="Patient"
+                        value={pet.name}
+                        note={pet.age_years != null ? `${pet.age_years}-year-old ${pet.species}` : pet.species}
+                      />
+                    </MagneticCard>
+                    <MagneticCard>
+                      <IntroCard
+                        icon={<CalendarIcon />}
+                        label="Visit"
+                        value={<VisitClock part="date" />}
+                        note={<VisitClock part="time" />}
+                      />
+                    </MagneticCard>
+                  </MagneticCards>
+
+                  <button
+                    onClick={getStarted}
+                    className="group mt-7 inline-block rounded-xl transition-transform duration-300 ease-out hover:scale-[1.06] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ink active:scale-[0.98] motion-reduce:transition-none motion-reduce:hover:scale-100"
+                  >
+                    <ChromaticLabel className="px-8 py-3.5 text-lg shadow-lg shadow-badger/30 transition-shadow duration-300 group-hover:shadow-xl group-hover:shadow-badger/40">
+                      Get started{" "}
+                      <span
+                        aria-hidden
+                        className="inline-block transition-transform duration-300 group-hover:translate-x-1 motion-reduce:transition-none"
+                      >
+                        →
+                      </span>
+                    </ChromaticLabel>
+                  </button>
+                </section>
               )}
             </div>
-          </aside>
-        )}
-      </main>
-    </div>
+          </div>
+
+          {step === "decide" && (
+            <>
+              <div className="mt-8">
+                <CareExplainer
+                  petName={pet.name}
+                  items={plan.items}
+                  resourcesHref={`/plan/${id}/resources`}
+                  onShowPlan={() => {
+                    if (planReady) return scrollToPlan(details.current);
+                    jumpToPlan.current = true;
+                    setPlanReady(true);
+                  }}
+                />
+              </div>
+
+              {/* The plan itself rises in as it scrolls into view, under the flipping explainer. */}
+              <div hidden={!planReady}>
+                <div ref={details} className={`${PLAN_GRID} mt-16 scroll-mt-6`}>
+                  <motion.div className="space-y-5" {...RISE}>
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      {GROUPS.map((g) => {
+                        const groupItems = plan.items.filter((i) => i.group === g.id);
+                        const on = groupItems.length > 0 && groupItems.every((i) => i.selected);
+                        return (
+                          <button
+                            key={g.id}
+                            onClick={() => setGroupSelected(g.id, !on)}
+                            disabled={groupItems.length === 0}
+                            aria-pressed={on}
+                            className={`rounded-full border px-3 py-1 font-medium transition-colors disabled:opacity-40 ${
+                              on ? `border-transparent ${GROUP_TONE[g.id]}` : "border-line bg-white text-muted hover:text-ink"
+                            }`}
+                          >
+                            {on ? "✓ " : "+ "}
+                            {g.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <GroupBoard
+                      items={plan.items}
+                      petName={pet.name}
+                      draggable
+                      onMove={move}
+                      onToggle={toggle}
+                      detailsAlwaysVisible
+                      expandable
+                    />
+                  </motion.div>
+
+                  <motion.aside
+                    className="space-y-5 self-start rounded-2xl border border-line bg-white p-5 md:sticky md:top-6"
+                    {...RISE}
+                    transition={{ ...RISE.transition, delay: 0.12 }}
+                  >
+                    <div>
+                      <h2 className="text-xs font-semibold uppercase tracking-wider text-muted">Today&apos;s plan</h2>
+                      <p className="font-serif text-5xl tabular-nums">{money(total)}</p>
+                      <p className="text-sm text-slate">Full estimate: {money(fullTotal(plan.items))}</p>
+                    </div>
+
+                    <BudgetBar
+                      total={total}
+                      budget={plan.budget}
+                      ownerName={plan.owner_name}
+                      onBudgetChange={(budget) => save({ budget })}
+                    />
+
+                    <PaymentToggle
+                      value={plan.payment_choice}
+                      total={total}
+                      onChange={(payment_choice: PaymentChoice) => save({ payment_choice })}
+                    />
+
+                    <Link
+                      href={`/plan/${id}/resources`}
+                      className={`block text-sm underline-offset-2 hover:underline ${
+                        overBudget ? "font-semibold text-bad" : "text-muted"
+                      }`}
+                    >
+                      Can&apos;t cover it today? See lower-cost Madison options →
+                    </Link>
+
+                    <hr className="border-line" />
+
+                    <TakeHomeSummary items={plan.items} />
+
+                    <div className="space-y-2">
+                      <button
+                        onClick={agree}
+                        disabled={demo}
+                        className="block w-full rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:opacity-50"
+                      >
+                        <ChromaticLabel texture="pine">Agree &amp; send summary</ChromaticLabel>
+                      </button>
+                      {demo && (
+                        <p className="text-center text-xs text-muted">Demo mode: start from Setup to save and share.</p>
+                      )}
+                    </div>
+                  </motion.aside>
+                </div>
+              </div>
+            </>
+          )}
+        </main>
+      </div>
+    </MotionConfig>
   );
 }
 
@@ -353,7 +471,7 @@ function IntroCard({
   note?: ReactNode;
 }) {
   return (
-    <div className="h-full rounded-2xl border border-white/70 bg-white/80 p-6 shadow-[0_24px_60px_-24px_rgba(80,50,30,0.35)] backdrop-blur-md sm:p-7">
+    <div className="h-full rounded-2xl border border-white/70 bg-white/80 p-5 shadow-[0_24px_60px_-24px_rgba(80,50,30,0.35)] backdrop-blur-md sm:p-6">
       <div className="flex items-center gap-3">
         <span
           className="grid h-10 w-10 place-items-center rounded-full bg-badger/10 text-badger [&>svg]:h-5 [&>svg]:w-5"
@@ -363,7 +481,7 @@ function IntroCard({
         </span>
         <span className="text-sm font-semibold uppercase tracking-wider text-muted">{label}</span>
       </div>
-      <p className="mt-4 font-serif text-3xl leading-tight sm:text-4xl">{value}</p>
+      <p className="mt-3 font-serif text-3xl leading-tight">{value}</p>
       {note && <p className="mt-1.5 text-base text-muted">{note}</p>}
     </div>
   );
