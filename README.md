@@ -49,7 +49,8 @@ suggestions fall back to the best-matching template. `GET /health` shows what's 
 | `app/main.py` | FastAPI app, CORS, routers under `/api`, `/health` (`?warm=true` wakes Databricks) |
 | `app/models.py` | Pydantic models (mirror `frontend/src/lib/types.ts`) |
 | `app/store.py` | Data access: Neon when `DATABASE_URL` is set, else JSON + in-memory |
-| `app/routers/reference.py` | `GET /catalog`, `/explanations`, `/templates`, `/symptoms`, `/resources` |
+| `app/routers/reference.py` | `GET /explanations`, `/templates`, `/symptoms`, `/resources` |
+| `app/routers/catalog.py` | Clinic price list: `GET /catalog` (`?include_inactive=true`), `POST /catalog`, `PATCH /catalog/{id}`, `DELETE /catalog/{id}` (soft; restore with `PATCH active=true`). Existing plans keep their prices. No auth yet |
 | `app/routers/suggest.py` | `POST /suggest` (symptoms → grouped items) |
 | `app/routers/plans.py` | `POST /plans`, `GET/PATCH /plans/{id}`, `POST /plans/{id}/agree`, `POST /plans/{id}/email`, `GET /share/{token}`, `GET /share/{token}/pdf` |
 | `app/routers/ai.py` | `POST /ai/parse-estimate` (stretch, stub) |
@@ -61,7 +62,7 @@ suggestions fall back to the best-matching template. `GET /health` shows what's 
 | `app/services/matching.py` | Match messy names ("CBC w/ diff") to catalog |
 | `app/data/*.json` | Catalog (33 items), explanations, templates, symptoms, Madison resources, synthetic cases |
 | `db/schema.sql` | Neon schema |
-| `scripts/seed.py` | Create Neon tables + upsert `app/data` |
+| `scripts/seed.py` | Create Neon tables + load `app/data`. Catalog/explanations are insert-only so clinic edits survive; `--reset` overwrites |
 | `scripts/generate_cases.py` | Claude generates ~300 SAMPLE cases → `app/data/synthetic_cases.jsonl` |
 | `scripts/load_databricks.py` | Create Databricks tables, load cases, `--check` runs the Mochi search |
 | `tests/` | pytest; external services mocked |

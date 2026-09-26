@@ -8,7 +8,16 @@ for key in ("DATABASE_URL", "DATABRICKS_HOST", "DATABRICKS_HTTP_PATH", "DATABRIC
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
+from app import store  # noqa: E402
 from app.main import app  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def fresh_store():
+    """Each test starts from the JSON seed data, with no plans."""
+    store.reset_memory()
+    yield
+    store.reset_memory()
 
 
 @pytest.fixture

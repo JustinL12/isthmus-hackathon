@@ -53,3 +53,7 @@ create table if not exists plans (
   created_at     timestamptz not null default now(),
   updated_at     timestamptz not null default now()
 );
+
+-- Clinic price-list edits (added after launch, safe to re-run).
+alter table catalog_items add column if not exists active boolean not null default true;
+alter table catalog_items add column if not exists updated_at timestamptz not null default now();

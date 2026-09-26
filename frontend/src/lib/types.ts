@@ -23,7 +23,27 @@ export interface CatalogItem {
   price: number;
   aliases: string[]; // messy estimate names, e.g. "CBC w/ diff"
   default_group: Partial<Record<string, Group>>; // visit template id -> suggested group
+  active: boolean; // false = removed from the clinic's price list (kept for history)
 }
+
+// ---- Clinic price list edits (/api/catalog) ----
+
+export interface CatalogItemDetail extends CatalogItem {
+  explanation: Explanation | null;
+}
+
+export interface CatalogItemCreate {
+  name: string; // 1-80 chars
+  price: number; // 0-100000
+  code?: string;
+  explanation?: Explanation | null; // all three lines required if sent
+}
+
+/** Send only the fields that changed. `active: true` restores a removed item. */
+export type CatalogItemUpdate = Partial<Omit<CatalogItemCreate, "explanation">> & {
+  explanation?: Explanation;
+  active?: boolean;
+};
 
 export interface Template {
   id: string;

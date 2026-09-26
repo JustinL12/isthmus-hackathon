@@ -25,6 +25,39 @@ class CatalogItem(BaseModel):
     price: float
     aliases: list[str] = []  # messy estimate names, e.g. "CBC w/ diff"
     default_group: dict[str, Group] = {}  # visit template id -> suggested group
+    active: bool = True  # False = removed by the clinic (hidden, kept for history)
+
+
+class CatalogItemDetail(CatalogItem):
+    explanation: Explanation | None = None
+
+
+# ---- Clinic price list edits ----
+
+NonBlank = Field(min_length=1, max_length=400, pattern=r"\S")
+
+
+class ExplanationIn(BaseModel):
+    what: str = NonBlank
+    why: str = NonBlank
+    if_postponed: str = NonBlank
+
+
+class CatalogItemCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=80, pattern=r"\S")
+    price: float = Field(ge=0, le=100_000)
+    code: str = Field("", max_length=20)
+    explanation: ExplanationIn | None = None
+
+
+class CatalogItemUpdate(BaseModel):
+    """Partial update: fields left out are unchanged."""
+
+    name: str | None = Field(None, min_length=1, max_length=80, pattern=r"\S")
+    price: float | None = Field(None, ge=0, le=100_000)
+    code: str | None = Field(None, max_length=20)
+    explanation: ExplanationIn | None = None
+    active: bool | None = None
 
 
 class Template(BaseModel):

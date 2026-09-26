@@ -12,7 +12,7 @@ import secrets
 from functools import cache
 from pathlib import Path
 
-from .models import CatalogItem, Explanation, Plan, Resource, Symptom, Template
+from .models import CatalogItem, CatalogItemDetail, Explanation, Plan, Resource, Symptom, Template
 
 DATA_DIR = Path(__file__).parent / "data"
 
@@ -46,26 +46,102 @@ def _rows(sql: str, **params) -> list[dict]:
         return [dict(r._mapping) for r in conn.execute(text(sql), params)]
 
 
-# ---- Reference data (cached: it only changes when we re-seed) ----
+# ---- Reference data ----
+# Cached per process; the catalog writes below clear the caches. (Render runs one process.)
+
+# Memory mode: editable copies of the JSON, loaded on first use.
+_mem_catalog: dict[str, dict] | None = None
+_mem_explanations: dict[str, dict] | None = None
+
+
+def _mem() -> tuple[dict[str, dict], dict[str, dict]]:
+    global _mem_catalog, _mem_explanations
+    if _mem_catalog is None:
+        _mem_catalog = {c["id"]: c for c in load_json("catalog.json")}
+        _mem_explanations = load_json("explanations.json")
+    return _mem_catalog, _mem_explanations
+
+
+@cache
+def all_catalog() -> dict[str, CatalogItem]:
+    """Every catalog item, including ones the clinic removed."""
+    rows = _rows("select * from catalog_items order by id") if engine() else list(_mem()[0].values())
+    return {r["id"]: CatalogItem(**{**r, "price": float(r["price"])}) for r in rows}
 
 
 @cache
 def catalog() -> dict[str, CatalogItem]:
-    rows = _rows("select * from catalog_items order by id") if engine() else load_json("catalog.json")
-    return {r["id"]: CatalogItem(**{**r, "price": float(r["price"])}) for r in rows}
+    """Active items only: what templates, suggestions, search and new plans may use."""
+    return {k: v for k, v in all_catalog().items() if v.active}
 
 
 @cache
 def explanations() -> dict[str, Explanation]:
     if engine():
         return {r["catalog_id"]: Explanation(**r) for r in _rows("select * from explanations")}
-    return {k: Explanation(**v) for k, v in load_json("explanations.json").items()}
+    return {k: Explanation(**v) for k, v in _mem()[1].items()}
 
 
 @cache
 def templates() -> dict[str, Template]:
+    """Templates, with removed items left out of item_ids."""
     rows = _rows("select * from templates order by id") if engine() else load_json("templates.json")
-    return {t["id"]: Template(**t) for t in rows}
+    active = catalog()
+    return {t["id"]: Template(**{**t, "item_ids": [i for i in t["item_ids"] if i in active]}) for t in rows}
+
+
+def clear_caches() -> None:
+    for f in (all_catalog, catalog, explanations, templates):
+        f.cache_clear()
+
+
+def reset_memory() -> None:
+    """Tests: throw away in-memory edits and plans."""
+    global _mem_catalog, _mem_explanations
+    _mem_catalog = _mem_explanations = None
+    _plans.clear()
+    clear_caches()
+
+
+# ---- Catalog edits (clinic price list) ----
+
+
+def catalog_detail(item_id: str) -> CatalogItemDetail | None:
+    item = all_catalog().get(item_id)
+    return item and CatalogItemDetail(**item.model_dump(), explanation=explanations().get(item_id))
+
+
+def save_catalog_item(item: CatalogItem, explanation: Explanation | None) -> CatalogItemDetail:
+    """Insert or update one item (and its explanation, when given) in a single transaction."""
+    if engine():
+        from sqlalchemy import text
+
+        with engine().begin() as conn:
+            conn.execute(
+                text(
+                    "insert into catalog_items (id, name, code, price, aliases, default_group, active, updated_at) "
+                    "values (:id, :name, :code, :price, :aliases, cast(:default_group as jsonb), :active, now()) "
+                    "on conflict (id) do update set name = excluded.name, code = excluded.code, "
+                    "price = excluded.price, active = excluded.active, updated_at = now()"
+                ),
+                {**item.model_dump(), "default_group": json.dumps(item.default_group)},
+            )
+            if explanation:
+                conn.execute(
+                    text(
+                        "insert into explanations (catalog_id, what, why, if_postponed) "
+                        "values (:id, :what, :why, :if_postponed) on conflict (catalog_id) do update set "
+                        "what = excluded.what, why = excluded.why, if_postponed = excluded.if_postponed"
+                    ),
+                    {"id": item.id, **explanation.model_dump()},
+                )
+    else:
+        cat, exp = _mem()
+        cat[item.id] = item.model_dump()
+        if explanation:
+            exp[item.id] = explanation.model_dump()
+    clear_caches()
+    return catalog_detail(item.id)
 
 
 @cache

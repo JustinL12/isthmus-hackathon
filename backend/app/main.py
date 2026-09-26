@@ -9,7 +9,7 @@ from fastapi import FastAPI  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
 from . import store  # noqa: E402
-from .routers import ai, plans, reference, suggest  # noqa: E402
+from .routers import ai, catalog, plans, reference, suggest  # noqa: E402
 from .services import claude, databricks, email  # noqa: E402
 
 logging.basicConfig(level=logging.INFO)
@@ -23,7 +23,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-for r in (reference.router, plans.router, suggest.router, ai.router):
+for r in (reference.router, catalog.router, plans.router, suggest.router, ai.router):
     app.include_router(r, prefix="/api")
 
 

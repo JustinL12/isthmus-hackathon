@@ -1,5 +1,8 @@
 import type {
   CatalogItem,
+  CatalogItemCreate,
+  CatalogItemDetail,
+  CatalogItemUpdate,
   CreatePlanRequest,
   Explanation,
   Plan,
@@ -32,7 +35,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  catalog: () => request<CatalogItem[]>("/catalog"),
+  /** Active items; pass true for the clinic's list, which also includes removed ones. */
+  catalog: (includeInactive = false) =>
+    request<CatalogItem[]>(includeInactive ? "/catalog?include_inactive=true" : "/catalog"),
+  // Clinic price list. Errors: 404 unknown id, 409 name already on the list, 422 invalid input.
+  createCatalogItem: (body: CatalogItemCreate) =>
+    request<CatalogItemDetail>("/catalog", { method: "POST", body: JSON.stringify(body) }),
+  updateCatalogItem: (id: string, body: CatalogItemUpdate) =>
+    request<CatalogItemDetail>(`/catalog/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+  removeCatalogItem: (id: string) => request<CatalogItemDetail>(`/catalog/${id}`, { method: "DELETE" }),
+  restoreCatalogItem: (id: string) =>
+    request<CatalogItemDetail>(`/catalog/${id}`, { method: "PATCH", body: JSON.stringify({ active: true }) }),
   explanations: () => request<Record<string, Explanation>>("/explanations"),
   templates: () => request<Template[]>("/templates"),
   resources: () => request<Resource[]>("/resources"),
