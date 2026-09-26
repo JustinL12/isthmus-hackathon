@@ -6,8 +6,8 @@ export type Species = "cat" | "dog";
 
 export const GROUPS: { id: Group; label: string; hint: string }[] = [
   { id: "essential", label: "Essential now", hint: "Tied to why your pet is here today" },
-  { id: "soon", label: "Recommended soon", hint: "Important, often fine within days or weeks" },
-  { id: "optional", label: "Nice to have", hint: "Preventive or optional, flexible timing" },
+  { id: "soon", label: "Recommended soon", hint: "Often fine within a few days" },
+  { id: "optional", label: "Nice to have", hint: "Worth discussing, flexible timing" },
 ];
 
 export interface Explanation {

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChromaticLabel } from "@/components/ChromaticLabel";
 
 export default function Home() {
   return (
@@ -8,9 +9,14 @@ export default function Home() {
         Turn a confusing vet estimate into a clear plan you can afford: what&apos;s essential today, what can
         wait, and what&apos;s optional.
       </p>
-      <Link href="/setup" className="w-fit rounded-lg bg-black px-5 py-3 text-white">
-        Start a visit plan (vet)
-      </Link>
+      <div className="flex flex-wrap gap-3">
+        <Link href="/setup" className="w-fit rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2">
+          <ChromaticLabel>Start a visit plan (vet)</ChromaticLabel>
+        </Link>
+        <Link href="/plan/demo" className="w-fit rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2">
+          <ChromaticLabel texture="pine">Open the Mochi demo</ChromaticLabel>
+        </Link>
+      </div>
     </main>
   );
 }

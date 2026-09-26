@@ -26,6 +26,9 @@ def share_url(plan: Plan) -> str:
     return f"{base}/summary/{plan.share_token}"
 
 
+SPLIT_PAYMENTS = 3  # keep in sync with frontend/src/lib/plan-math.ts
+
+
 def money(x: float) -> str:
     return f"${x:,.2f}"
 
@@ -43,7 +46,7 @@ def build_pdf(plan: Plan) -> bytes:
     pdf.set_font("Helvetica", "", 11)
     pdf.cell(0, 7, _t(f"For {plan.owner_name}" + (f" - {plan.pet.reason}" if plan.pet.reason else "")), new_x="LMARGIN", new_y="NEXT")
     if plan.payment_choice == "split":
-        pdf.cell(0, 7, "Payment: split into 4 payments", new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(0, 7, f"Payment: split into {SPLIT_PAYMENTS} payments", new_x="LMARGIN", new_y="NEXT")
     pdf.ln(4)
 
     _section(pdf, f"Done today ({money(sum(i.price for i in done))})", done)
