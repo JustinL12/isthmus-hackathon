@@ -1,4 +1,4 @@
-# ClearCare
+# Isthmus
 
 A shared exam-room screen that turns a confusing vet estimate into a clear plan the owner can afford:
 **essential today**, **recommended soon**, **nice to have**, fitted to the owner's budget, with a take-home summary.

@@ -11,20 +11,32 @@ export function PaymentToggle({
   onChange: (v: PaymentChoice) => void;
 }) {
   const options: { id: PaymentChoice; label: string }[] = [
-    { id: "pay_today", label: `Pay today: ${money(total)}` },
-    { id: "split", label: `${SPLIT_PAYMENTS} payments of ${money(total / SPLIT_PAYMENTS)}` },
+    { id: "pay_today", label: "Pay today" },
+    { id: "split", label: `Split in ${SPLIT_PAYMENTS}` },
   ];
+  const installment = total / SPLIT_PAYMENTS;
   return (
-    <div className="flex gap-2">
-      {options.map((o) => (
-        <button
-          key={o.id}
-          onClick={() => onChange(o.id)}
-          className={`rounded-lg border px-4 py-2 ${value === o.id ? "border-black bg-black text-white" : ""}`}
-        >
-          {o.label}
-        </button>
-      ))}
+    <div className="space-y-2">
+      <p className="text-sm text-ink/80">How to pay</p>
+      <div className="grid grid-cols-2 gap-1 rounded-xl bg-cream p-1">
+        {options.map((o) => (
+          <button
+            key={o.id}
+            onClick={() => onChange(o.id)}
+            aria-pressed={value === o.id}
+            className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              value === o.id ? "bg-white text-ink shadow-sm" : "text-ink/70 hover:text-ink"
+            }`}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+      <p className="text-sm text-good">
+        {value === "pay_today"
+          ? `${money(total)} due at checkout.`
+          : `${SPLIT_PAYMENTS} payments of ${money(installment)}, ${money(installment)} due today.`}
+      </p>
     </div>
   );
 }

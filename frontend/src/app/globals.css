@@ -11,6 +11,28 @@
   --font-sans: var(--font-geist-sans);
 }
 
+/* Isthmus palette (shared decision screen). */
+@theme {
+  --font-serif: var(--font-source-serif);
+  --color-badger: #c5050c;
+  --color-cream: #f6f2ea;
+  --color-line: #e9e2d5;
+  --color-ink: #1f2a2a;
+  --color-muted: #6b716c;
+  --color-slate: #3f6e8c;
+  --color-primary: #1d5c4f;
+  --color-primary-soft: #dcebe6;
+  --color-cta: #1d5c4f;
+  --color-good: #2f7a4f;
+  --color-bad: #b23a2a;
+  --color-essential: #9a3a2a;
+  --color-essential-soft: #f6ddd6;
+  --color-soon: #8a5a12;
+  --color-soon-soft: #f8e5c4;
+  --color-optional: #2b6a5c;
+  --color-optional-soft: #d8ebe6;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;

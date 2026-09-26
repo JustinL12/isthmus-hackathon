@@ -1,4 +1,4 @@
--- ClearCare schema (from the project plan's data model).
+-- Isthmus schema (from the project plan's data model).
 -- Not wired up yet: the API uses app/store.py (JSON + in-memory) until we switch.
 
 create table catalog_items (

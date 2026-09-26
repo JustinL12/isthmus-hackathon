@@ -8,7 +8,7 @@ from .routers import ai, plans, reference
 
 load_dotenv()
 
-app = FastAPI(title="ClearCare API")
+app = FastAPI(title="Isthmus API")
 
 app.add_middleware(
     CORSMiddleware,
