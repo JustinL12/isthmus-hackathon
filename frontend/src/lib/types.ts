@@ -15,6 +15,15 @@ export interface Explanation {
   if_postponed: string;
 }
 
+export interface CatalogItem {
+  id: string;
+  name: string;
+  code: string;
+  price: number;
+  aliases: string[]; // messy estimate names, e.g. "CBC w/ diff"
+  default_group: Partial<Record<string, Group>>; // visit template id -> suggested group
+}
+
 export interface Template {
   id: string;
   name: string;

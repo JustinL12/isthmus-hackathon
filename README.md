@@ -17,8 +17,9 @@ backend/    FastAPI (Python)                            → owned by Back end an
 | Path | What | Owner |
 | --- | --- | --- |
 | `app/page.tsx` | Landing | FE2 |
-| `app/setup/page.tsx` | Vet setup: pick template, pet/owner/budget | FE2 |
-| `app/plan/[id]/arrange/page.tsx` | Vet drags items between groups | FE2 |
+| `app/setup/page.tsx` | Vet setup step 1: pick template, pet/owner/budget | FE2 |
+| `app/plan/[id]/arrange/page.tsx` | Vet setup step 2: drag items between groups, add from price list, remove, notes for owner | FE2 |
+| `components/setup/` | Vet setup board, item card, price-list search | FE2 |
 | `app/plan/[id]/page.tsx` | **Shared decision screen**: groups, explanations, live total, budget bar, payment toggle | FE1 |
 | `app/plan/[id]/resources/page.tsx` | "Can't cover it today?" Madison resources | FE2 |
 | `app/summary/[token]/page.tsx` | Take-home summary via share link | FE2 |
@@ -33,7 +34,7 @@ backend/    FastAPI (Python)                            → owned by Back end an
 | `main.py` | FastAPI app, CORS, routers under `/api` | BE |
 | `models.py` | Pydantic models (mirror `frontend/src/lib/types.ts`) | BE |
 | `store.py` | Data access: JSON seed data + in-memory plans (swap for Supabase) | BE |
-| `routers/reference.py` | `GET /catalog`, `/templates`, `/resources` | BE |
+| `routers/reference.py` | `GET /catalog`, `/explanations`, `/templates`, `/resources` | BE |
 | `routers/plans.py` | `POST /plans`, `GET/PATCH /plans/{id}`, `POST /plans/{id}/agree`, `GET /share/{token}` | BE |
 | `routers/ai.py` | `POST /ai/parse-estimate` (stretch, stub) | AI |
 | `services/claude.py` | Claude API: estimate parsing, draft explanations (stubs) | AI |
@@ -75,7 +76,7 @@ npm run dev
 ## TODO (next passes)
 
 - [ ] Fill catalog to ~30 items; more explanations; vet-student review
-- [ ] Add/remove items and vet notes on the arrange screen
+- [x] Add/remove items and vet notes on the arrange screen
 - [ ] Supabase: swap `store.py`, realtime sync between tablet and phone
 - [ ] Split-with-roommate approvals (`shares` table)
 - [ ] Deploy: Vercel (frontend) + Render/Fly/Vercel Python (backend)
