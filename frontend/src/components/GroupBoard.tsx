@@ -1,11 +1,13 @@
 "use client";
 
 import { DndContext, type DragEndEvent, PointerSensor, TouchSensor, useDraggable, useDroppable, useSensor, useSensors } from "@dnd-kit/core";
-import { type ReactNode, useId } from "react";
+import { AnimatePresence } from "framer-motion";
+import { type ReactNode, useCallback, useId, useState } from "react";
 import { money, todayTotal } from "@/lib/plan-math";
 import { GROUPS, type Group, type PlanItem } from "@/lib/types";
 import { GROUP_TONE } from "@/lib/ui";
 import { ItemCard } from "./ItemCard";
+import { ItemDetailsDialog } from "./ItemDetailsDialog";
 
 // Defined in lib/ui (server components can read it there); re-exported for existing imports.
 export { GROUP_TONE };
@@ -14,12 +16,14 @@ export { GROUP_TONE };
  * Three stacked groups (Essential / Soon / Optional).
  * - draggable: vet can move items between groups
  * - onToggle: owner can tick items on/off for today
+ * - expandable: each item gets a button that opens a larger details view
  */
 export function GroupBoard({
   items,
   petName,
   draggable = false,
   detailsAlwaysVisible = false,
+  expandable = false,
   onMove,
   onToggle,
 }: {
@@ -27,9 +31,15 @@ export function GroupBoard({
   petName?: string;
   draggable?: boolean;
   detailsAlwaysVisible?: boolean;
+  expandable?: boolean;
   onMove?: (itemId: string, group: Group) => void;
   onToggle?: (itemId: string) => void;
 }) {
+  const [expanded, setExpanded] = useState<{ id: string; originY: number } | null>(null);
+  const closeDetails = useCallback(() => setExpanded(null), []);
+  const expandedItem = expanded && items.find((i) => i.id === expanded.id);
+  const expandedGroup = expandedItem && GROUPS.find((g) => g.id === expandedItem.group);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
@@ -61,6 +71,7 @@ export function GroupBoard({
                     item={i}
                     onToggle={onToggle && (() => onToggle(i.id))}
                     detailsAlwaysVisible={detailsAlwaysVisible}
+                    onExpand={expandable ? (originY) => setExpanded({ id: i.id, originY }) : undefined}
                   />
                 );
                 return draggable ? <Draggable key={i.id} id={i.id}>{card}</Draggable> : <div key={i.id}>{card}</div>;
@@ -74,6 +85,20 @@ export function GroupBoard({
           );
         })}
       </div>
+
+      <AnimatePresence>
+        {expandedItem && expandedGroup && (
+          <ItemDetailsDialog
+            key={expandedItem.id}
+            item={expandedItem}
+            petName={petName ?? "your pet"}
+            groupLabel={expandedGroup.label}
+            toneClassName={GROUP_TONE[expandedItem.group]}
+            originY={expanded.originY}
+            onClose={closeDetails}
+          />
+        )}
+      </AnimatePresence>
     </DndContext>
   );
 }

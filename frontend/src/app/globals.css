@@ -34,19 +34,6 @@
   --color-soon-soft: #f8e5c4;
   --color-optional: #2b6a5c;
   --color-optional-soft: #d8ebe6;
-
-  /* Decision screen content rising in after the intro ripple. */
-  --animate-float-up: float-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
-  @keyframes float-up {
-    from {
-      opacity: 0;
-      transform: translateY(32px);
-    }
-    to {
-      opacity: 1;
-      transform: none;
-    }
-  }
 }
 
 /* Decision screen: the intro step is short and the decision step scrolls; reserving the
