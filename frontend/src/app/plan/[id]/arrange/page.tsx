@@ -1,7 +1,8 @@
 "use client";
 
-// Vet setup step 2: confirm the suggested groups (drag, or each card's group picker), add items
-// from the clinic price list, remove items, and leave notes for the owner. Changes save as you go.
+// Vet setup step 4: confirm the suggested groups (drag, or each card's group picker), add items
+// from the clinic price list (into the open group), remove items, and leave notes for the owner.
+// Changes save as you go.
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -13,12 +14,12 @@ import { SetupBoard } from "@/components/setup/SetupBoard";
 import { SetupStepper } from "@/components/setup/SetupStepper";
 import { Disclaimer } from "@/components/Disclaimer";
 import { ApiError, api } from "@/lib/api";
-import { planItemFromCatalog, suggestedGroup } from "@/lib/catalog";
+import { planItemFromCatalog } from "@/lib/catalog";
 import { fullTotal, money } from "@/lib/plan-math";
 import { draftFromPlan, getDraft, setDraft } from "@/lib/setup-draft";
 import type { CatalogItem, Explanation, Group, Plan, PlanItem } from "@/lib/types";
 import { GROUPS } from "@/lib/types";
-import { card, ctaWrapper, focusRing, secondaryButton, sectionLabel } from "@/lib/ui";
+import { card, ctaWrapper, secondaryButton, sectionLabel } from "@/lib/ui";
 import { usePlanItemsSaver } from "@/lib/use-plan-items-saver";
 import { PageSpinner } from "@/components/Spinner";
 
@@ -30,7 +31,7 @@ export default function ArrangePage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const { id } = use(params);
-  const template = use(searchParams).template; // visit template, for suggesting groups of added items
+  const template = use(searchParams).template; // visit template, to rebuild the setup draft on "Back"
   const templateId = typeof template === "string" ? template : null;
   const router = useRouter();
 
@@ -40,7 +41,6 @@ export default function ArrangePage({
   const [explanations, setExplanations] = useState<Record<string, Explanation>>({});
   const [loadError, setLoadError] = useState<unknown>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
-  const [adding, setAdding] = useState(false);
   const [focused, setFocused] = useState<Group>("essential"); // the expanded group on the board
   const [removed, setRemoved] = useState<{ item: PlanItem; index: number } | null>(null);
   const [notice, setNotice] = useState("");
@@ -53,8 +53,7 @@ export default function ArrangePage({
       .then(([p, c, e]) => {
         if (cancelled) return;
         setPlan(p);
-        setItems(p.items);
-        if (p.items.length === 0) setAdding(true); // skipped the template: start at the price list
+        setItems(p.items); // an empty plan (template skipped) starts at the price list, always shown on the left
         setCatalog(c);
         setExplanations(e);
       })
@@ -163,12 +162,12 @@ export default function ArrangePage({
     commit(next);
   };
 
+  // Added items go into the group open on the board, so they appear where the vet is looking.
   const add = (c: CatalogItem) => {
     if (items.some((i) => i.catalog_id === c.id)) return;
-    const group = suggestedGroup(c, templateId);
+    const group = focused;
     if (removed?.item.catalog_id === c.id) setRemoved(null);
     setNotice(`Added ${c.name} to ${GROUPS.find((g) => g.id === group)?.label}.`);
-    setFocused(group); // show where it landed
     commit([...items, planItemFromCatalog(c, group, explanations)]);
   };
 
@@ -246,35 +245,25 @@ export default function ArrangePage({
         )}
         <p className="text-sm text-slate">
           The app suggested a group for each item. Tap a group to open it, and drag items onto another group (or use
-          each card&apos;s group menu) to move them. Then review the plan with {plan.owner_name}.
+          each card&apos;s group menu) to move them. Items you add from the price list go into the open group. Then
+          review the plan with {plan.owner_name}.
         </p>
 
-        {adding ? (
-          <CatalogSearch
-            catalog={catalog}
-            templateId={templateId}
-            inPlan={inPlan}
-            onAdd={add}
-            onClose={() => setAdding(false)}
+        {/* Price list on the left of the board; stacked above it on narrower screens. */}
+        <div className="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
+          <div className="lg:sticky lg:top-6 lg:self-start">
+            <CatalogSearch catalog={catalog} group={focused} inPlan={inPlan} onAdd={add} />
+          </div>
+          <SetupBoard
+            items={items}
+            codes={codes}
+            focused={focused}
+            onFocus={setFocused}
+            onMove={move}
+            onRemove={remove}
+            onNote={setNote}
           />
-        ) : (
-          <button
-            onClick={() => setAdding(true)}
-            className={`inline-flex h-11 items-center rounded-xl border border-dashed border-ink/25 bg-white/60 px-4 text-sm font-medium text-ink transition-colors hover:border-ink/40 hover:bg-white ${focusRing}`}
-          >
-            + Add item from price list
-          </button>
-        )}
-
-        <SetupBoard
-          items={items}
-          codes={codes}
-          focused={focused}
-          onFocus={setFocused}
-          onMove={move}
-          onRemove={remove}
-          onNote={setNote}
-        />
+        </div>
 
         <Disclaimer />
 

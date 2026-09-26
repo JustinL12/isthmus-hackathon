@@ -29,10 +29,6 @@ export function searchCatalog(catalog: CatalogItem[], query: string): CatalogMat
   return ranked.sort((a, b) => a.rank - b.rank).map((r) => r.match);
 }
 
-/** The group the app suggests for an item on this visit type; the vet confirms or changes it. */
-export const suggestedGroup = (item: CatalogItem, templateId: string | null): Group =>
-  (templateId && item.default_group[templateId]) || "soon"; // same fallback as POST /plans
-
 // crypto.randomUUID only exists in secure contexts; a tablet on http://<laptop-ip>:3000 isn't one.
 export function newItemId(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(6));
