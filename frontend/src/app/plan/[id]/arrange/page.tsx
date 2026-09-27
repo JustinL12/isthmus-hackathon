@@ -137,8 +137,9 @@ export default function ArrangePage({
     save(next);
   };
 
+  // The tick follows the group, so choose care starts with only the essentials ticked.
   const move = (itemId: string, group: Group) =>
-    commit(items.map((i) => (i.id === itemId ? { ...i, group } : i)));
+    commit(items.map((i) => (i.id === itemId ? { ...i, group, selected: group === "essential" } : i)));
 
   const setNote = (itemId: string, vet_note: string | null) =>
     commit(items.map((i) => (i.id === itemId ? { ...i, vet_note } : i)));

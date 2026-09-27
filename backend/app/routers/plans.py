@@ -57,6 +57,8 @@ def create_plan(req: CreatePlanRequest):
             name=catalog[c.catalog_id].name,
             price=catalog[c.catalog_id].price,
             group=c.group,
+            # Choose care starts with only the essentials ticked; the owner adds anything else.
+            selected=c.group == "essential",
             reason=c.reason,
             explanation=explanations.get(c.catalog_id),
         )

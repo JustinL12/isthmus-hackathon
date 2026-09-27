@@ -40,6 +40,37 @@ def test_mochi_template_flow(client, monkeypatch):
     assert pdf.headers["content-type"] == "application/pdf" and pdf.content.startswith(b"%PDF")
 
 
+def test_new_plans_tick_only_essentials(client):
+    from_template = client.post("/api/plans", json={**MOCHI, "template_id": "vomiting-senior-cat"}).json()
+    from_items = client.post(
+        "/api/plans",
+        json={**MOCHI, "items": [{"catalog_id": "exam", "group": "essential"}, {"catalog_id": "urinalysis", "group": "soon"}]},
+    ).json()
+    for plan in (from_template, from_items):
+        assert {i["group"] for i in plan["items"]} > {"essential"}  # has non-essential items too
+        assert all(i["selected"] == (i["group"] == "essential") for i in plan["items"])
+    assert total(from_template["items"], only_selected=True) == 360
+
+
+def test_more_species(client):
+    for species in ("rabbit", "guinea-pig", "bearded-dragon", "other"):
+        plan = client.post(
+            "/api/plans", json={**MOCHI, "pet": {**MOCHI["pet"], "species": species}, "items": []}
+        ).json()
+        assert plan["pet"]["species"] == species
+    bad = client.post("/api/plans", json={**MOCHI, "pet": {**MOCHI["pet"], "species": "dragon"}, "items": []})
+    assert bad.status_code == 422
+    # No rabbit templates: ranking is empty rather than an error, and suggestions fall back cleanly.
+    assert client.post("/api/templates/rank", json={"species": "rabbit", "symptoms": ["vomiting"]}).json() == []
+    assert client.post("/api/suggest", json={"species": "rabbit", "symptoms": ["vomiting"]}).json()["source"] == "none"
+
+    from app.services.claude import describe_pet
+    from app.services.databricks import _check_input
+
+    assert describe_pet("guinea-pig", 3, None, None) == "guinea pig, 3 years"
+    _check_input("guinea-pig", ["vomiting"])  # allowed through to the similar-case search
+
+
 def test_list_plans(client):
     assert client.get("/api/plans").json() == []
 
@@ -58,7 +89,7 @@ def test_list_plans(client):
     assert [r["pet"]["name"] for r in rows] == ["Third", "Second", "First"]  # newest first
     newest, oldest = rows[0], rows[-1]
     assert newest["status"] == "draft" and newest["share_token"] is None
-    assert newest["item_count"] == len(third["items"]) and newest["total_today"] == 780  # all ticked by default
+    assert newest["item_count"] == len(third["items"]) and newest["total_today"] == 360  # essentials ticked by default
     assert oldest["status"] == "agreed" and oldest["share_token"] == agreed["share_token"]
     assert oldest["total_today"] == 360 and oldest["owner_name"] == "Alex"
     assert all(r["created_at"] for r in rows)

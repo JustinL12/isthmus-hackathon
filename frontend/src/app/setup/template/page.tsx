@@ -14,6 +14,7 @@ import { Disclaimer } from "@/components/Disclaimer";
 import { SetupStepper } from "@/components/setup/SetupStepper";
 import { ApiError, api } from "@/lib/api";
 import { describePet } from "@/lib/pet";
+import { speciesPlural } from "@/lib/species";
 import { money } from "@/lib/plan-math";
 import {
   AI_DRAFT,
@@ -231,7 +232,8 @@ export default function TemplateStep() {
           ? pickedTemplate.id
           : aiAvailable && draft.templateId !== AI_DRAFT
             ? AI_DRAFT
-            : (defaultTemplate(templates, draft, ranks)?.id ?? null);
+            : // No template for this species (e.g. rabbits): start from the price list.
+              (defaultTemplate(templates, draft, ranks)?.id ?? (templates.length ? SKIP_TEMPLATE : null));
   const selected = templates.find((t) => t.id === choice) ?? null;
   // Template that suggests groups for items the vet adds in step 4.
   const aiFallbackId = ai.status === "done" ? ai.res.fallback_template_id : null;
@@ -478,12 +480,12 @@ export default function TemplateStep() {
               <Spinner label="Loading templates" />
             ) : (
               <>
-                <TemplateGroup title={`Visit templates for ${draft.species}s`}>
+                <TemplateGroup title={`Visit templates for ${speciesPlural(draft.species)}`}>
                   {matching.length ? (
                     matching.map(templateCard)
                   ) : (
                     <p className="rounded-2xl border border-dashed border-line px-5 py-4 text-sm text-muted">
-                      No visit templates for {draft.species}s yet. Skip the template to build the plan from the price
+                      No visit templates for {speciesPlural(draft.species)} yet. Skip the template to build the plan from the price
                       list.
                     </p>
                   )}

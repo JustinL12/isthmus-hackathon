@@ -5,10 +5,12 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from .species import SPECIES_IDS
+
 Group = Literal["essential", "soon", "optional"]
 PaymentChoice = Literal["pay_today", "split"]
 PlanStatus = Literal["draft", "agreed"]
-Species = Literal["cat", "dog"]
+Species = Literal[SPECIES_IDS]  # type: ignore[valid-type]  # the ids in species.py
 PlanSource = Literal["suggest", "template", "blank"]
 
 

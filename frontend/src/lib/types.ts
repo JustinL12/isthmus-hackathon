@@ -2,7 +2,9 @@
 
 export type Group = "essential" | "soon" | "optional";
 export type PaymentChoice = "pay_today" | "split";
-export type Species = "cat" | "dog";
+import type { Species } from "./species";
+
+export type { Species }; // the ids in lib/species.ts (cat, dog, rabbit, …)
 
 export const GROUPS: { id: Group; label: string; hint: string }[] = [
   { id: "essential", label: "Essential now", hint: "Tied to why your pet is here today" },

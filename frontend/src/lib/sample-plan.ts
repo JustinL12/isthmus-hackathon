@@ -2,7 +2,8 @@ import type { Plan } from "./types";
 
 // Mochi/Alex demo from the project plan. Mirrors what POST /api/plans builds from the
 // "vomiting-senior-cat" template (backend/app/data), so /plan/demo works with no backend.
-// Full estimate $780; essentials $360; Alex's budget $400. Prices are samples.
+// Full estimate $780; essentials $360 (the only items ticked to start, as in real plans); Alex's
+// budget $400. Prices are samples.
 
 export const DEMO_PLAN_ID = "demo";
 
@@ -78,7 +79,7 @@ export const samplePlan: Plan = {
       name: "Belly X-rays",
       price: 250,
       group: "soon",
-      selected: true,
+      selected: false,
       explanation: {
         what: "Pictures of the belly.",
         why: "Looks for blockages or swallowed objects.",
@@ -91,7 +92,7 @@ export const samplePlan: Plan = {
       name: "Urine test",
       price: 70,
       group: "soon",
-      selected: true,
+      selected: false,
       explanation: {
         what: "A test of a urine sample.",
         why: "Adds detail to the blood panel on kidney health.",
@@ -104,7 +105,7 @@ export const samplePlan: Plan = {
       name: "Thyroid test",
       price: 65,
       group: "optional",
-      selected: true,
+      selected: false,
       explanation: {
         what: "Measures thyroid hormone.",
         why: "An overactive thyroid is common in older cats and can cause vomiting.",
@@ -117,7 +118,7 @@ export const samplePlan: Plan = {
       name: "Prescription diet (1 bag)",
       price: 35,
       group: "optional",
-      selected: true,
+      selected: false,
       explanation: {
         what: "A gentle food that is easy on the stomach.",
         why: "Can help the stomach settle for a few days.",

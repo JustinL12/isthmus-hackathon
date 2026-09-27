@@ -12,6 +12,7 @@ import { ChromaticLabel } from "@/components/ChromaticLabel";
 import { SetupStepper } from "@/components/setup/SetupStepper";
 import { SymptomSearch } from "@/components/setup/SymptomSearch";
 import { api, warmUp } from "@/lib/api";
+import { describePet } from "@/lib/pet";
 import { isPatientComplete, optionalNumber, updateDraft, useHydrated, useSetupDraft } from "@/lib/setup-draft";
 import type { Symptom } from "@/lib/types";
 import { card, ctaWrapper, fieldLabel, focusRing, secondaryButton, sectionLabel } from "@/lib/ui";
@@ -52,10 +53,19 @@ export default function SymptomsStep() {
 
   if (!hydrated || !complete) return <Shell><PageSpinner /></Shell>;
 
-  const age = optionalNumber(draft.age);
+  // Same patient line as step 3's header ("Mochi · 12-year-old Domestic Shorthair · 9.5 lbs").
+  const pet = describePet({
+    species: draft.species,
+    age_years: optionalNumber(draft.age),
+    breed: draft.breed.trim() || null,
+    weight_lbs: optionalNumber(draft.weight),
+  });
+  // Symptom tags only tell cats from dogs; other species get the whole (general) list.
+  const forSpecies =
+    draft.species === "cat" || draft.species === "dog" ? symptoms.filter((s) => s.species.includes(draft.species)) : symptoms;
   const header = (
     <AppHeader
-      title={`${draft.petName.trim()}${age != null ? ` · ${age}-year-old ${draft.species}` : ""}`}
+      title={`${draft.petName.trim()} · ${pet}`}
       subtitle={`Owner: ${draft.ownerName.trim()}`}
       note="Sample estimate"
       badge="Vet setup"
@@ -132,7 +142,7 @@ export default function SymptomsStep() {
             </section>
           ) : (
             <SymptomSearch
-              symptoms={symptoms.filter((s) => s.species.includes(draft.species))}
+              symptoms={forSpecies}
               chosen={new Set(chosen)}
               onAdd={add}
               onCreate={create}
