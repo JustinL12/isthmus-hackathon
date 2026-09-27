@@ -40,6 +40,36 @@ def test_mochi_template_flow(client, monkeypatch):
     assert pdf.headers["content-type"] == "application/pdf" and pdf.content.startswith(b"%PDF")
 
 
+def test_list_plans(client):
+    assert client.get("/api/plans").json() == []
+
+    def make(name):
+        return client.post(
+            "/api/plans", json={**MOCHI, "pet": {**MOCHI["pet"], "name": name}, "template_id": "vomiting-senior-cat"}
+        ).json()
+
+    first, second, third = make("First"), make("Second"), make("Third")
+    # Updating or agreeing to a plan doesn't move it in the list.
+    items = [{**i, "selected": i["group"] == "essential"} for i in first["items"]]
+    client.patch(f"/api/plans/{first['id']}", json={"items": items})
+    agreed = client.post(f"/api/plans/{first['id']}/agree").json()
+
+    rows = client.get("/api/plans").json()
+    assert [r["pet"]["name"] for r in rows] == ["Third", "Second", "First"]  # newest first
+    newest, oldest = rows[0], rows[-1]
+    assert newest["status"] == "draft" and newest["share_token"] is None
+    assert newest["item_count"] == len(third["items"]) and newest["total_today"] == 780  # all ticked by default
+    assert oldest["status"] == "agreed" and oldest["share_token"] == agreed["share_token"]
+    assert oldest["total_today"] == 360 and oldest["owner_name"] == "Alex"
+    assert all(r["created_at"] for r in rows)
+    assert set(rows[0]) == {"id", "pet", "owner_name", "status", "share_token", "item_count", "total_today", "created_at"}
+
+    assert [r["pet"]["name"] for r in client.get("/api/plans?limit=2").json()] == ["Third", "Second"]
+    assert client.get("/api/plans?limit=0").status_code == 422
+    assert client.get("/api/plans?limit=500").status_code == 422
+    assert second["id"] in {r["id"] for r in rows}
+
+
 def test_pdf_download_any_pet_name(client):
     # Header values must be Latin-1: names like these used to crash the PDF download (500)
     # or produce a broken header.

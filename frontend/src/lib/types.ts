@@ -104,6 +104,18 @@ export interface Plan {
   suggested: ItemChoice[]; // the AI draft as first shown; compared with the final plan to learn from vet changes
 }
 
+/** One visit in the vet's "Previous visits" list (GET /plans). */
+export interface PlanSummary {
+  id: string;
+  pet: Pet;
+  owner_name: string;
+  status: Plan["status"];
+  share_token: string | null;
+  item_count: number;
+  total_today: number; // items selected for today
+  created_at: string | null; // ISO date-time
+}
+
 // ---- /suggest ----
 
 export interface ItemChoice {
