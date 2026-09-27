@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { IsthmusCareLogo } from "@/components/IsthmusCareLogo";
 import { describePet } from "@/lib/pet";
 import type { Plan } from "@/lib/types";
 import { card } from "@/lib/ui";
@@ -29,10 +30,10 @@ export function AppHeader({
     <header className="bg-badger text-white">
       <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:px-8">
         <Link href="/" className="flex shrink-0 items-center gap-2 font-serif text-2xl">
-          <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-            <circle cx="12" cy="12" r="9.5" />
-            <path d="m7.5 12.5 3 3 6-6.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          {/* The link text names it; the badge is decoration here. */}
+          <span aria-hidden className="flex">
+            <IsthmusCareLogo size={32} variant="icon" />
+          </span>
           Isthmus
         </Link>
         {title != null && (
