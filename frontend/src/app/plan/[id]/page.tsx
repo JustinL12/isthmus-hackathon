@@ -9,6 +9,7 @@
 import { useRouter } from "next/navigation";
 import { type ReactNode, use, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { PlanHeader } from "@/components/AppChrome";
+import { describePet } from "@/lib/pet";
 import { ChromaticLabel } from "@/components/ChromaticLabel";
 import { MagneticCard, MagneticCards } from "@/components/MagneticCards";
 import { OwnerStepper, PlanStatus, ownerStepHref } from "@/components/OwnerSteps";
@@ -132,7 +133,7 @@ export default function WelcomePage({ params }: { params: Promise<{ id: string }
                   icon={<PawIcon />}
                   label="Patient"
                   value={pet.name}
-                  note={pet.age_years != null ? `${pet.age_years}-year-old ${pet.species}` : pet.species}
+                  note={describePet(pet)}
                 />
               </MagneticCard>
               <MagneticCard>

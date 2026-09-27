@@ -11,6 +11,7 @@ import type {
   SuggestResponse,
   Symptom,
   Template,
+  TemplateRank,
 } from "./types";
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -53,6 +54,11 @@ export const api = {
     request<CatalogItemDetail>(`/catalog/${id}`, { method: "PATCH", body: JSON.stringify({ active: true }) }),
   explanations: () => request<Record<string, Explanation>>("/explanations"),
   templates: () => request<Template[]>("/templates"),
+  /** This species' templates, best fit for the patient first (symptoms, age/weight/breed, what vets picked before). */
+  rankTemplates: (body: SuggestRequest) =>
+    request<TemplateRank[]>("/templates/rank", { method: "POST", body: JSON.stringify(body) }),
+  /** Hide an AI-made template (403 for the clinic's own). */
+  hideTemplate: (id: string) => request<Template>(`/templates/${id}`, { method: "DELETE" }),
   resources: () => request<Resource[]>("/resources"),
   symptoms: () => request<Symptom[]>("/symptoms"),
   /** Adds a symptom to the clinic list, or returns the existing one with the same name. */

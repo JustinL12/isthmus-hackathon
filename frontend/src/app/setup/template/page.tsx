@@ -2,7 +2,8 @@
 
 // Vet setup step 3 of 4: pick the AI's draft for the symptoms from step 2, or a visit template,
 // then build the plan (or return to the one already built from this same draft, keeping the
-// vet's step 4 edits).
+// vet's step 4 edits). Templates are ranked for this patient by the backend (symptoms, age,
+// weight and breed, and what vets picked for similar visits); some are AI-made from past visits.
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -12,6 +13,7 @@ import { ChromaticLabel } from "@/components/ChromaticLabel";
 import { Disclaimer } from "@/components/Disclaimer";
 import { SetupStepper } from "@/components/setup/SetupStepper";
 import { ApiError, api } from "@/lib/api";
+import { describePet } from "@/lib/pet";
 import { money } from "@/lib/plan-math";
 import {
   AI_DRAFT,
@@ -25,28 +27,53 @@ import {
   useHydrated,
   useSetupDraft,
 } from "@/lib/setup-draft";
-import type { CatalogItem, CreatePlanRequest, SuggestRequest, SuggestResponse, Template } from "@/lib/types";
+import type {
+  CatalogItem,
+  CreatePlanRequest,
+  SuggestRequest,
+  SuggestResponse,
+  Template,
+  TemplateRank,
+} from "@/lib/types";
 import { card, ctaWrapper, quietLink, secondaryButton, sectionLabel } from "@/lib/ui";
 import { PageSpinner, Spinner } from "@/components/Spinner";
 
 const DEFAULT_TEMPLATE = "vomiting-senior-cat"; // the demo case
 
-// AI drafts by request, so going back and forth between steps doesn't ask Claude again.
+// AI drafts and template rankings by request, so going back and forth between steps doesn't ask again.
 const suggestions = new Map<string, SuggestResponse>();
+const rankings = new Map<string, TemplateRank[]>();
 
 const overlap = (t: Template, symptoms: string[]) => t.symptoms.filter((s) => symptoms.includes(s)).length;
 
-// The template to preselect: best symptom match for the species, else the demo case, else the first that fits.
-function defaultTemplate(templates: Template[], d: SetupDraft) {
+// This species' templates, best first: the backend's ranking once it's in, else by symptom overlap.
+function orderTemplates(templates: Template[], d: SetupDraft, ranks: TemplateRank[] | null) {
   const fits = templates.filter((t) => t.species === d.species);
-  const best = [...fits].sort((a, b) => overlap(b, d.symptoms) - overlap(a, d.symptoms))[0];
-  if (best && overlap(best, d.symptoms) > 0) return best;
+  if (ranks) {
+    const at = new Map(ranks.map((r, i) => [r.template_id, i]));
+    return fits.sort((a, b) => (at.get(a.id) ?? ranks.length) - (at.get(b.id) ?? ranks.length));
+  }
+  return fits.sort((a, b) => overlap(b, d.symptoms) - overlap(a, d.symptoms));
+}
+
+// The template to preselect: the best fit for this patient, else the demo case, else the first that fits.
+function defaultTemplate(templates: Template[], d: SetupDraft, ranks: TemplateRank[] | null) {
+  const fits = orderTemplates(templates, d, ranks);
+  const best = fits[0];
+  const bestScore = ranks?.find((r) => r.template_id === best?.id)?.score;
+  if (best && (bestScore != null ? bestScore > 0 : overlap(best, d.symptoms) > 0)) return best;
   return fits.find((t) => t.id === DEFAULT_TEMPLATE) ?? fits[0] ?? templates[0] ?? null;
 }
 
+const profile = (d: SetupDraft) => ({
+  species: d.species,
+  age_years: optionalNumber(d.age),
+  breed: d.breed.trim() || null,
+  weight_lbs: optionalNumber(d.weight),
+});
+
 function patientLine(d: SetupDraft) {
-  const age = optionalNumber(d.age);
-  return `${d.petName.trim()}${age != null ? ` · ${age}-year-old ${d.species}` : ""}`;
+  return `${d.petName.trim()} · ${describePet(profile(d))}`;
 }
 
 // Same patient context as PlanHeader shows once the plan exists (step 4, decision screen).
@@ -75,6 +102,8 @@ export default function TemplateStep() {
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [aiResults, setAiResults] = useState<Record<string, SuggestResponse | "error">>({});
   const [aiAttempt, setAiAttempt] = useState(0);
+  const [rankResults, setRankResults] = useState<Record<string, TemplateRank[]>>({});
+  const [hideError, setHideError] = useState<string | null>(null);
   const [building, setBuilding] = useState(false);
   const [buildError, setBuildError] = useState(false);
 
@@ -100,10 +129,29 @@ export default function TemplateStep() {
     };
   }, [loadAttempt]);
 
+  // Rank the templates for this patient (fast; no AI call). Until it answers (or if it fails),
+  // templates are ordered by symptom overlap.
+  const rankKey = hydrated ? JSON.stringify({ ...profile(draft), symptoms: draft.symptoms }) : null;
+  useEffect(() => {
+    if (!rankKey || rankings.has(rankKey)) return;
+    let cancelled = false;
+    api
+      .rankTemplates(JSON.parse(rankKey))
+      .then((res) => {
+        rankings.set(rankKey, res);
+        if (!cancelled) setRankResults((r) => ({ ...r, [rankKey]: res }));
+      })
+      .catch(() => {}); // keep the symptom-overlap order
+    return () => {
+      cancelled = true;
+    };
+  }, [rankKey]);
+  const ranks = rankKey ? (rankings.get(rankKey) ?? rankResults[rankKey] ?? null) : null;
+
   // Ask for the AI draft (Databricks similar cases + Claude); takes a few seconds.
   const aiRequest: SuggestRequest | null =
     hydrated && draft.symptoms.length
-      ? { species: draft.species, age_years: optionalNumber(draft.age), symptoms: draft.symptoms, notes: draft.notes.trim() || null }
+      ? { ...profile(draft), symptoms: draft.symptoms, notes: draft.notes.trim() || null }
       : null;
   const aiKey = aiRequest ? JSON.stringify(aiRequest) : null;
   useEffect(() => {
@@ -181,11 +229,12 @@ export default function TemplateStep() {
           ? pickedTemplate.id
           : aiAvailable && draft.templateId !== AI_DRAFT
             ? AI_DRAFT
-            : (defaultTemplate(templates, draft)?.id ?? null);
+            : (defaultTemplate(templates, draft, ranks)?.id ?? null);
   const selected = templates.find((t) => t.id === choice) ?? null;
   // Template that suggests groups for items the vet adds in step 4.
   const aiFallbackId = ai.status === "done" ? ai.res.fallback_template_id : null;
-  const hintTemplate = selected ?? templates.find((t) => t.id === aiFallbackId) ?? defaultTemplate(templates, draft);
+  const hintTemplate =
+    selected ?? templates.find((t) => t.id === aiFallbackId) ?? defaultTemplate(templates, draft, ranks);
 
   const body: CreatePlanRequest | null =
     choice === AI_DRAFT || choice === SKIP_TEMPLATE
@@ -239,11 +288,26 @@ export default function TemplateStep() {
     }
   }
 
-  const byMatch = (a: Template, b: Template) => overlap(b, draft.symptoms) - overlap(a, draft.symptoms);
-  const matching = templates.filter((t) => t.species === draft.species).sort(byMatch);
+  const matching = orderTemplates(templates, draft, ranks);
   const others = templates.filter((t) => t.species !== draft.species);
+  const reasonsFor = (t: Template) => {
+    const rank = ranks?.find((r) => r.template_id === t.id);
+    if (rank) return rank.reasons;
+    const n = overlap(t, draft.symptoms);
+    return n > 0 ? [`Matches ${n} symptom${n === 1 ? "" : "s"}`] : [];
+  };
+
+  async function hide(t: Template) {
+    setHideError(null);
+    try {
+      await api.hideTemplate(t.id);
+      setTemplates((ts) => ts.filter((x) => x.id !== t.id));
+      if (draft.templateId === t.id) updateDraft({ templateId: "" });
+    } catch {
+      setHideError(`Couldn't hide "${t.name}". Try again.`);
+    }
+  }
   const forwardLabel = sameAsBuilt ? "Next: Sort items" : "Build plan";
-  const age = optionalNumber(draft.age);
   const budget = optionalNumber(draft.budget);
 
   const optionClass = (checked: boolean) =>
@@ -259,7 +323,9 @@ export default function TemplateStep() {
   const templateCard = (t: Template) => {
     const items = t.item_ids.map((id) => catalog[id]).filter((c): c is CatalogItem => c != null);
     const checked = choice === t.id;
-    const matches = overlap(t, draft.symptoms);
+    // Only this species' templates are ranked for the patient.
+    const reasons = t.species === draft.species ? reasonsFor(t) : [];
+    const ai = t.origin === "ai";
     return (
       <label key={t.id} className={optionClass(checked)}>
         <input
@@ -273,15 +339,37 @@ export default function TemplateStep() {
         <span className="flex items-start justify-between gap-4">
           <span className="min-w-0">
             <span className="flex flex-wrap items-center gap-2">
-              <span className="text-lg font-semibold">{t.name}</span>
-              {matches > 0 && (
-                <span className="rounded-full bg-cream px-2 py-0.5 text-xs font-medium text-slate">
-                  Matches {matches} symptom{matches === 1 ? "" : "s"}
+              {ai && (
+                <span className="rounded-full bg-badger/10 px-2 py-0.5 text-xs font-semibold text-badger">
+                  AI-made · from {t.based_on} visits
                 </span>
               )}
+              <span className="text-lg font-semibold">{t.name}</span>
               {checked && selectedTag}
             </span>
+            {reasons.length > 0 && (
+              <span className="mt-2 flex flex-wrap gap-1.5">
+                {reasons.map((r) => (
+                  <span key={r} className="rounded-full bg-cream px-2 py-0.5 text-xs font-medium text-slate">
+                    {r}
+                  </span>
+                ))}
+              </span>
+            )}
+            {ai && t.summary && <span className="mt-2 block text-sm text-muted">{t.summary}</span>}
             <span className="mt-1 block text-sm text-slate">{items.map((c) => c.name).join(", ")}</span>
+            {ai && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault(); // don't select the template
+                  void hide(t);
+                }}
+                className={`mt-2 ${quietLink}`}
+              >
+                Hide this template
+              </button>
+            )}
           </span>
           <span className="shrink-0 text-right">
             <span className="block font-serif text-3xl leading-none tabular-nums">
@@ -391,6 +479,11 @@ export default function TemplateStep() {
                 <TemplateGroup title={matching.length ? `Visit templates for ${draft.species}s` : "Visit templates"}>
                   {(matching.length ? matching : others).map(templateCard)}
                 </TemplateGroup>
+                {hideError && (
+                  <p role="alert" className="text-sm text-bad">
+                    {hideError}
+                  </p>
+                )}
                 {matching.length > 0 && others.length > 0 && (
                   <TemplateGroup title="Other templates">{others.map(templateCard)}</TemplateGroup>
                 )}
@@ -428,7 +521,7 @@ export default function TemplateStep() {
               <div>
                 <dt className="sr-only">Pet</dt>
                 <dd className="text-lg font-semibold">{draft.petName.trim()}</dd>
-                <dd className="text-slate">{age != null ? `${age}-year-old ${draft.species}` : draft.species}</dd>
+                <dd className="text-slate">{describePet(profile(draft))}</dd>
               </div>
               <div className="pt-2">
                 <dt className="inline text-muted">Owner: </dt>

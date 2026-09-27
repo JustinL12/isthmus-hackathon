@@ -9,6 +9,8 @@ export interface SetupDraft {
   petName: string;
   species: Species;
   age: string; // raw input text; "" = not given
+  breed: string; // free text; "" = not given
+  weight: string; // lbs, raw input text; "" = not given
   ownerName: string;
   budget: string; // raw input text; "" = not given
   symptoms: string[]; // symptom ids (step 2)
@@ -23,6 +25,8 @@ export const DEFAULT_DRAFT: SetupDraft = {
   petName: "",
   species: "cat",
   age: "",
+  breed: "",
+  weight: "",
   ownerName: "",
   budget: "",
   symptoms: [],
@@ -36,6 +40,8 @@ export const DEMO_DRAFT: SetupDraft = {
   ...DEFAULT_DRAFT,
   petName: "Mochi",
   age: "12",
+  breed: "Domestic Shorthair",
+  weight: "9.5",
   ownerName: "Alex",
   budget: "400",
   symptoms: ["vomiting", "not-eating"],
@@ -61,6 +67,8 @@ function sanitize(raw: unknown): SetupDraft {
     petName: str(r.petName, DEFAULT_DRAFT.petName),
     species: r.species === "dog" ? "dog" : "cat",
     age: str(r.age, DEFAULT_DRAFT.age),
+    breed: str(r.breed, ""),
+    weight: str(r.weight, ""),
     ownerName: str(r.ownerName, DEFAULT_DRAFT.ownerName),
     budget: str(r.budget, DEFAULT_DRAFT.budget),
     symptoms: Array.isArray(r.symptoms)
@@ -129,11 +137,14 @@ const validNumber = (s: string, min: number, max: number) => {
   return Number.isFinite(n) && n >= min && n <= max;
 };
 
-/** Same rules as the step 1 form: names required (not just spaces), age 0–40, budget ≥ 0. */
+export const MAX_WEIGHT_LBS = 300;
+
+/** Same rules as the step 1 form: names required (not just spaces), age 0–40, weight 0–300 lbs, budget ≥ 0. */
 export const isPatientComplete = (d: SetupDraft) =>
   d.petName.trim() !== "" &&
   d.ownerName.trim() !== "" &&
   validNumber(d.age, 0, 40) &&
+  validNumber(d.weight, 0.1, MAX_WEIGHT_LBS) &&
   validNumber(d.budget, 0, Number.POSITIVE_INFINITY);
 
 /**
@@ -148,6 +159,8 @@ export function planRequest(d: SetupDraft, start: { id: string; reason: string }
       name: d.petName.trim(),
       species: d.species,
       age_years: optionalNumber(d.age),
+      breed: d.breed.trim() || null,
+      weight_lbs: optionalNumber(d.weight),
       reason: start.reason,
     },
     owner_name: d.ownerName.trim(),
@@ -166,6 +179,8 @@ export function draftFromPlan(plan: Plan, templateId: string | null): SetupDraft
     petName: plan.pet.name,
     species: plan.pet.species,
     age: plan.pet.age_years == null ? "" : String(plan.pet.age_years),
+    breed: plan.pet.breed ?? "",
+    weight: plan.pet.weight_lbs == null ? "" : String(plan.pet.weight_lbs),
     ownerName: plan.owner_name,
     budget: plan.budget == null ? "" : String(plan.budget),
     symptoms: plan.symptoms,

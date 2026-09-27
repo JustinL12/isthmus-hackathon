@@ -39,7 +39,7 @@ create table if not exists resources (
 -- Databricks export flattens it.
 create table if not exists plans (
   id             text primary key,
-  pet            jsonb not null,              -- { name, species, age_years, reason }
+  pet            jsonb not null,              -- { name, species, age_years, breed, weight_lbs, reason }
   owner_name     text not null,
   owner_email    text,
   budget         numeric(10, 2),
@@ -68,3 +68,19 @@ create table if not exists symptoms (
 
 -- The AI draft a plan started from, so vet changes can be learned from.
 alter table plans add column if not exists suggested jsonb not null default '[]';
+
+-- Patient-aware templates: who each template is for, and templates the AI made from past visits.
+alter table templates add column if not exists age_min double precision;
+alter table templates add column if not exists age_max double precision;
+alter table templates add column if not exists weight_min_lbs double precision;
+alter table templates add column if not exists weight_max_lbs double precision;
+alter table templates add column if not exists breeds text[] not null default '{}';
+alter table templates add column if not exists groups jsonb not null default '{}';  -- { catalog_id: group }
+alter table templates add column if not exists origin text not null default 'clinic';  -- 'clinic' | 'ai'
+alter table templates add column if not exists based_on int not null default 0;
+alter table templates add column if not exists summary text;
+alter table templates add column if not exists active boolean not null default true;
+alter table templates add column if not exists created_at timestamptz not null default now();
+
+-- What the vet started from: a template id, 'ai' or 'blank'.
+alter table plans add column if not exists template_id text;

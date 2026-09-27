@@ -60,12 +60,35 @@ class CatalogItemUpdate(BaseModel):
     active: bool | None = None
 
 
+TemplateOrigin = Literal["clinic", "ai"]
+
+
 class Template(BaseModel):
     id: str
     name: str
     species: Species
     item_ids: list[str]
-    symptoms: list[str] = []  # symptom ids, used to pick a fallback template
+    symptoms: list[str] = []  # symptom ids, used to rank templates and pick a fallback
+    # Patients the template is for (None / [] = any); used to rank templates for a patient.
+    age_min: float | None = None
+    age_max: float | None = None
+    weight_min_lbs: float | None = None
+    weight_max_lbs: float | None = None
+    breeds: list[str] = []
+    groups: dict[str, Group] = {}  # catalog id -> group; else the item's default_group for this template
+    origin: TemplateOrigin = "clinic"  # "ai" = made by services/template_gen.py from past visits
+    based_on: int = 0  # AI templates: how many past visits they were made from
+    summary: str | None = None  # AI templates: one line on who they're for
+    active: bool = True  # False = hidden by a vet
+
+    def group_for(self, item: CatalogItem) -> Group:
+        return self.groups.get(item.id) or item.default_group.get(self.id, "soon")
+
+
+class TemplateRank(BaseModel):
+    template_id: str
+    score: float
+    reasons: list[str]  # short chips for the vet, e.g. "Matches 2 symptoms"
 
 
 class Symptom(BaseModel):
@@ -88,10 +111,16 @@ class Resource(BaseModel):
     phone: str | None = None
 
 
+Breed = Field(None, max_length=60)
+WeightLbs = Field(None, gt=0, le=300)
+
+
 class Pet(BaseModel):
     name: str
     species: Species
     age_years: float | None = None
+    breed: str | None = Breed  # free text; the setup form suggests common breeds
+    weight_lbs: float | None = WeightLbs
     reason: str = ""
 
 
@@ -122,6 +151,7 @@ class Plan(BaseModel):
     owner_email: str | None = None
     source: PlanSource = "template"
     suggested: list["ItemChoice"] = []  # the AI draft as first shown, so vet changes can be learned from
+    template_id: str | None = None  # what the vet started from: a template id, "ai" or "blank"
 
 
 # ---- Request bodies ----
@@ -161,6 +191,8 @@ class UpdatePlanRequest(BaseModel):
 class SuggestRequest(BaseModel):
     species: Species
     age_years: float | None = None
+    breed: str | None = Breed
+    weight_lbs: float | None = WeightLbs
     symptoms: list[str]
     notes: str | None = None
 

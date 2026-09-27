@@ -51,6 +51,24 @@ export interface Template {
   species: Species;
   item_ids: string[];
   symptoms: string[];
+  // Patients it's for (null / [] = any); used to rank templates for a patient.
+  age_min: number | null;
+  age_max: number | null;
+  weight_min_lbs: number | null;
+  weight_max_lbs: number | null;
+  breeds: string[];
+  groups: Partial<Record<string, Group>>; // catalog id -> group (AI-made templates)
+  origin: "clinic" | "ai"; // "ai" = made from patterns in past visits
+  based_on: number; // AI-made: how many past visits it came from
+  summary: string | null; // AI-made: who it's for
+  active: boolean;
+}
+
+/** POST /templates/rank: this species' templates, best fit for the patient first. */
+export interface TemplateRank {
+  template_id: string;
+  score: number;
+  reasons: string[]; // e.g. "Matches 2 symptoms", "Fits age 8+ yrs", "Picked for 3 similar visits"
 }
 
 export interface Symptom {
@@ -72,6 +90,8 @@ export interface Pet {
   name: string;
   species: Species;
   age_years?: number | null;
+  breed?: string | null; // free text, up to 60 characters
+  weight_lbs?: number | null; // 0-300
   reason?: string;
 }
 
@@ -102,6 +122,7 @@ export interface Plan {
   owner_email: string | null;
   source: "suggest" | "template" | "blank"; // blank = the vet skipped the template and added items by hand
   suggested: ItemChoice[]; // the AI draft as first shown; compared with the final plan to learn from vet changes
+  template_id?: string | null; // what the vet started from: a template id, "ai" or "blank"
 }
 
 // ---- /suggest ----
@@ -115,6 +136,8 @@ export interface ItemChoice {
 export interface SuggestRequest {
   species: Species;
   age_years: number | null;
+  breed?: string | null;
+  weight_lbs?: number | null;
   symptoms: string[];
   notes?: string | null;
 }

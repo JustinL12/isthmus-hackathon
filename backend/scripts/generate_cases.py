@@ -1,4 +1,4 @@
-"""Generate synthetic past cases (symptoms -> items a vet chose) with Claude.
+"""Generate synthetic past cases (patient + symptoms -> items a vet chose) with Claude.
 
 Run from backend/:  python -m scripts.generate_cases [--per-batch 25]
 Writes app/data/synthetic_cases.jsonl (commit it, so everyone uses the same data).
@@ -20,7 +20,8 @@ from app.services.claude import GROUPS, MODEL  # noqa: E402
 
 OUT = store.DATA_DIR / "synthetic_cases.jsonl"
 
-# (species, focus) pairs so the cases cover the whole symptom list.
+# (species, focus) pairs so the cases cover the whole symptom list, plus breed- and size-specific
+# problems so suggestions and AI templates can learn from breed, weight and age.
 FOCUS = [
     ("cat", "vomiting, not eating, weight loss in older cats"),
     ("cat", "vomiting or diarrhea in young and middle-aged cats"),
@@ -34,14 +35,25 @@ FOCUS = [
     ("dog", "coughing, breathing trouble, lethargy"),
     ("dog", "eye discharge, squinting, lumps, wounds, bad breath, seizure"),
     ("dog", "routine wellness and vaccines; drinking or peeing more in older dogs"),
+    ("dog", "large and giant breeds (Labrador, German Shepherd, Golden Retriever, Great Dane): limping, pain, hip and joint problems"),
+    ("dog", "brachycephalic breeds (French Bulldog, Pug, English Bulldog, Boston Terrier): breathing trouble, eye and skin problems"),
+    ("dog", "toy and small breeds (Chihuahua, Yorkshire Terrier, Dachshund, Pomeranian): bad breath, dental disease, coughing, back pain"),
+    ("dog", "puppies under a year: vaccines and wellness, diarrhea, vomiting, ate something it shouldn't"),
+    ("cat", "Persian, Himalayan and other flat-faced cats: eye discharge, squinting, sneezing, breathing trouble"),
+    ("cat", "overweight indoor cats and Maine Coons: urinary straining, peeing more, limping, breathing trouble"),
+    ("cat", "kittens under a year: vaccines and wellness, diarrhea, sneezing, eye discharge"),
 ]
 
 SYSTEM = """You create realistic SAMPLE veterinary cases for a demo dataset. Each case is \
-a primary-care visit: the pet's species and age, the owner-reported symptoms, and the items \
-an experienced general-practice vet would put on the estimate, each grouped as:
+a primary-care visit: the pet's species, age, breed and weight (lbs), the owner-reported \
+symptoms, and the items an experienced general-practice vet would put on the estimate, each grouped as:
 - essential: needed today; - soon: within 1-2 weeks; - optional: nice to have.
-Vary ages, symptom combinations and severity. Different vets make slightly different \
-choices, so vary the item lists realistically. Almost every sick visit includes the exam."""
+Use realistic breeds (US names, e.g. "Domestic Shorthair", "Labrador Retriever"; about 1 in 5 \
+dogs "Mixed breed") and weights that fit the breed, age and body condition. Let breed, size and \
+age shape the choices the way they would in practice (breed-typical problems, weight-based \
+dosing, extra screening for seniors, vaccines for the young). Vary ages, symptom combinations \
+and severity. Different vets make slightly different choices, so vary the item lists \
+realistically. Almost every sick visit includes the exam."""
 
 
 def tool_schema() -> dict:
@@ -57,6 +69,8 @@ def tool_schema() -> dict:
                         "type": "object",
                         "properties": {
                             "age_years": {"type": "number"},
+                            "breed": {"type": "string"},
+                            "weight_lbs": {"type": "number"},
                             "symptoms": {"type": "array", "items": {"type": "string", "enum": sorted(store.symptoms())}},
                             "items": {
                                 "type": "array",
@@ -70,7 +84,7 @@ def tool_schema() -> dict:
                                 },
                             },
                         },
-                        "required": ["age_years", "symptoms", "items"],
+                        "required": ["age_years", "breed", "weight_lbs", "symptoms", "items"],
                     },
                 }
             },
@@ -79,14 +93,39 @@ def tool_schema() -> dict:
     }
 
 
-def valid(case: dict) -> dict | None:
+def as_list(x) -> list:
+    """Tool input that should be a list; occasionally it arrives JSON-encoded as a string."""
+    if isinstance(x, str):
+        try:
+            x = json.loads(x)
+        except ValueError:
+            return []
+    return x if isinstance(x, list) else []
+
+
+def valid(case) -> dict | None:
+    if isinstance(case, str):
+        try:
+            case = json.loads(case)
+        except ValueError:
+            return None
+    if not isinstance(case, dict):
+        return None
     catalog, symptoms = store.catalog(), store.symptoms()
-    syms = [s for s in dict.fromkeys(case.get("symptoms", [])) if s in symptoms]
-    items = list({i["catalog_id"]: i for i in case.get("items", [])
-                  if i.get("catalog_id") in catalog and i.get("group") in GROUPS}.values())
+    syms = [s for s in dict.fromkeys(as_list(case.get("symptoms"))) if isinstance(s, str) and s in symptoms]
+    items = list({i["catalog_id"]: i for i in as_list(case.get("items"))
+                  if isinstance(i, dict) and i.get("catalog_id") in catalog and i.get("group") in GROUPS}.values())
     if not syms or not items:
         return None
-    return {"age_years": float(case.get("age_years") or 0) or None, "symptoms": syms, "items": items}
+    breed = " ".join(str(case.get("breed") or "").split())[:60] or None
+    weight = float(case.get("weight_lbs") or 0)
+    return {
+        "age_years": float(case.get("age_years") or 0) or None,
+        "breed": breed,
+        "weight_lbs": weight if 0 < weight <= 300 else None,
+        "symptoms": syms,
+        "items": items,
+    }
 
 
 def main():
@@ -99,19 +138,23 @@ def main():
     symptom_menu = "\n".join(f"- {s.id}: {s.label}" for s in store.symptoms().values())
     cases = []
     for n, (species, focus) in enumerate(FOCUS, 1):
-        resp = client.messages.create(
-            model=MODEL,
-            max_tokens=16000,
-            system=SYSTEM,
-            tools=[tool_schema()],
-            tool_choice={"type": "tool", "name": "save_cases"},
-            messages=[{"role": "user", "content": (
-                f"Generate {args.per_batch} {species} cases focused on: {focus}.\n\n"
-                f"Symptom ids:\n{symptom_menu}\n\nCatalog ids:\n{catalog_menu}"
-            )}],
-        )
-        raw = next(b.input for b in resp.content if b.type == "tool_use")["cases"]
-        batch = [c for c in map(valid, raw) if c]
+        batch = []
+        for _attempt in range(3):  # retry a batch that came back mostly unusable
+            resp = client.messages.create(
+                model=MODEL,
+                max_tokens=16000,
+                system=SYSTEM,
+                tools=[tool_schema()],
+                tool_choice={"type": "tool", "name": "save_cases"},
+                messages=[{"role": "user", "content": (
+                    f"Generate {args.per_batch} {species} cases focused on: {focus}.\n\n"
+                    f"Symptom ids:\n{symptom_menu}\n\nCatalog ids:\n{catalog_menu}"
+                )}],
+            )
+            raw = as_list(next(b.input for b in resp.content if b.type == "tool_use").get("cases"))
+            batch = [c for c in map(valid, raw) if c]
+            if len(batch) >= args.per_batch // 2:
+                break
         for c in batch:
             cases.append({"case_id": f"syn-{len(cases) + 1:04d}", "species": species, **c})
         print(f"[{n}/{len(FOCUS)}] {species}: {focus} -> {len(batch)} cases")

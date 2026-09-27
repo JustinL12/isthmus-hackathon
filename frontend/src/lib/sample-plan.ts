@@ -8,7 +8,7 @@ export const DEMO_PLAN_ID = "demo";
 
 export const samplePlan: Plan = {
   id: DEMO_PLAN_ID,
-  pet: { name: "Mochi", species: "cat", age_years: 12, reason: "Vomiting for 2 days" },
+  pet: { name: "Mochi", species: "cat", age_years: 12, breed: "Domestic Shorthair", weight_lbs: 9.5, reason: "Vomiting for 2 days" },
   owner_name: "Alex",
   budget: 400,
   payment_choice: "pay_today",

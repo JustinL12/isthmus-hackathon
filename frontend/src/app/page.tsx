@@ -49,6 +49,13 @@ export default function Home() {
           </div>
         </div>
       </main>
+
+      <Link
+        href="/clinic"
+        className={`fixed right-4 bottom-4 rounded-full border border-line bg-white/90 px-3 py-1.5 text-xs font-medium text-ink shadow-sm backdrop-blur transition-colors hover:border-ink/30 sm:right-6 sm:bottom-6 ${focusRing}`}
+      >
+        Clinic price list
+      </Link>
     </div>
   );
 }

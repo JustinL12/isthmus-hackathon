@@ -9,7 +9,8 @@ import { type FormEvent, type ReactNode, use, useEffect, useRef } from "react";
 import { AppHeader, PageIntro } from "@/components/AppChrome";
 import { ChromaticLabel } from "@/components/ChromaticLabel";
 import { SetupStepper } from "@/components/setup/SetupStepper";
-import { resetDraft, updateDraft, useHydrated, useSetupDraft } from "@/lib/setup-draft";
+import { BREEDS, OTHER_BREEDS } from "@/lib/breeds";
+import { MAX_WEIGHT_LBS, resetDraft, updateDraft, useHydrated, useSetupDraft } from "@/lib/setup-draft";
 import { card, ctaWrapper, fieldLabel, input, inputBase, sectionLabel, segmentOption, segmentTrack } from "@/lib/ui";
 import { PageSpinner } from "@/components/Spinner";
 
@@ -97,8 +98,10 @@ export default function PatientStep({
                     name="species"
                     value={s}
                     checked={draft.species === s}
-                    // A new species makes the picked template a poor default; step 2 picks again.
-                    onChange={() => updateDraft({ species: s, templateId: s === draft.species ? draft.templateId : "" })}
+                    // A new species makes the picked template and the breed wrong; step 3 picks again.
+                    onChange={() =>
+                      s !== draft.species && updateDraft({ species: s, templateId: "", breed: "" })
+                    }
                     className="sr-only"
                   />
                   {s}
@@ -107,18 +110,52 @@ export default function PatientStep({
             </div>
           </fieldset>
           <label className={fieldLabel}>
-            Age (years)
+            Breed <span className="font-normal text-muted">(optional)</span>
             <input
               className={`mt-1 ${input}`}
-              type="number"
-              inputMode="decimal"
-              min={0}
-              max={40}
-              step="any"
-              value={draft.age}
-              onChange={(e) => updateDraft({ age: e.target.value })}
+              list="breed-options"
+              maxLength={60}
+              autoComplete="off"
+              value={draft.breed}
+              onChange={(e) => updateDraft({ breed: e.target.value })}
             />
+            <datalist id="breed-options">
+              {[...BREEDS[draft.species], ...OTHER_BREEDS].map((b) => (
+                <option key={b} value={b} />
+              ))}
+            </datalist>
           </label>
+          <div className="grid grid-cols-2 gap-4">
+            <label className={fieldLabel}>
+              Age (years)
+              <input
+                className={`mt-1 ${input}`}
+                type="number"
+                inputMode="decimal"
+                min={0}
+                max={40}
+                step="any"
+                value={draft.age}
+                onChange={(e) => updateDraft({ age: e.target.value })}
+              />
+            </label>
+            <label className={fieldLabel}>
+              Weight (lbs)
+              <input
+                className={`mt-1 ${input}`}
+                type="number"
+                inputMode="decimal"
+                min={0.1}
+                max={MAX_WEIGHT_LBS}
+                step="any"
+                value={draft.weight}
+                onChange={(e) => updateDraft({ weight: e.target.value })}
+              />
+            </label>
+          </div>
+          <p className="-mt-2 text-sm font-normal text-muted sm:col-span-2">
+            Breed, age and weight help the AI match past visits and pick templates for pets like this one.
+          </p>
           <label className={fieldLabel}>
             Owner name
             <input

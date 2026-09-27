@@ -82,23 +82,59 @@ def explanations() -> dict[str, Explanation]:
     return {k: Explanation(**v) for k, v in _mem()[1].items()}
 
 
+_mem_templates: dict[str, dict] | None = None
+
+
 @cache
-def templates() -> dict[str, Template]:
-    """Templates, with removed items left out of item_ids."""
-    rows = _rows("select * from templates order by id") if engine() else load_json("templates.json")
+def all_templates() -> dict[str, Template]:
+    """Every template, including AI-made ones vets hid, with removed items left out of item_ids."""
+    global _mem_templates
+    if engine():
+        rows = _rows("select * from templates order by origin desc, id")
+    else:
+        if _mem_templates is None:
+            _mem_templates = {t["id"]: t for t in load_json("templates.json")}
+        rows = list(_mem_templates.values())
     active = catalog()
     return {t["id"]: Template(**{**t, "item_ids": [i for i in t["item_ids"] if i in active]}) for t in rows}
 
 
+@cache
+def templates() -> dict[str, Template]:
+    """Templates vets can pick (clinic ones first, then AI-made ones)."""
+    return {k: t for k, t in all_templates().items() if t.active}
+
+
+def save_template(template: Template) -> Template:
+    """Insert or replace a template (AI-made ones, or hiding one)."""
+    data = template.model_dump()
+    if engine():
+        from sqlalchemy import text
+
+        cols = list(data)
+        values = ", ".join("cast(:groups as jsonb)" if c == "groups" else f":{c}" for c in cols)
+        updates = ", ".join(f"{c} = excluded.{c}" for c in cols if c != "id")
+        with engine().begin() as conn:
+            conn.execute(
+                text(f"insert into templates ({', '.join(cols)}) values ({values}) on conflict (id) do update set {updates}"),
+                {**data, "groups": json.dumps(data["groups"])},
+            )
+    else:
+        all_templates()  # load the seed list first
+        _mem_templates[template.id] = data
+    clear_caches()
+    return template
+
+
 def clear_caches() -> None:
-    for f in (all_catalog, catalog, explanations, templates):
+    for f in (all_catalog, catalog, explanations, all_templates, templates):
         f.cache_clear()
 
 
 def reset_memory() -> None:
     """Tests: throw away in-memory edits and plans."""
-    global _mem_catalog, _mem_explanations, _mem_symptoms
-    _mem_catalog = _mem_explanations = _mem_symptoms = None
+    global _mem_catalog, _mem_explanations, _mem_symptoms, _mem_templates
+    _mem_catalog = _mem_explanations = _mem_symptoms = _mem_templates = None
     _plans.clear()
     clear_caches()
     symptoms.cache_clear()
@@ -189,7 +225,7 @@ _plans: dict[str, Plan] = {}
 
 _PLAN_COLUMNS = (
     "id", "pet", "owner_name", "owner_email", "budget", "payment_choice", "status",
-    "share_token", "symptoms", "notes", "source", "items", "suggested",
+    "share_token", "symptoms", "notes", "source", "items", "suggested", "template_id",
 )
 _JSON_COLUMNS = {"pet", "items", "suggested"}
 
