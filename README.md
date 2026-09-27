@@ -5,6 +5,28 @@ A shared exam-room screen that turns a confusing vet estimate into a clear plan 
 
 Built for UW–Madison students and Madison clinics (Isthmus Hackathon).
 
+## For judges: try it in 2 steps
+
+Nothing to install. Open it in a browser (a laptop or tablet works best).
+
+1. **Wake up the backend (about 1 minute).** Open
+   **https://isthmus-api-l9ue.onrender.com/health?warm=true**
+   and wait until the page shows `"ok": true`. The server and the Databricks warehouse sleep when
+   unused, so the first load can take up to a minute. After that everything is fast.
+2. **Open the app:** **https://isthmus-hackathon.vercel.app**
+
+**What to try**
+
+- **Mochi demo** (small green button, in the very bottom right): a 12-year-old cat that's vomiting, already filled in.
+  Click through: patient → symptoms → pick the AI draft → sort items → review with the owner.
+- **Start a new visit:** enter any cat or dog, its breed, weight and symptoms, and watch the AI draft
+  a plan from similar past visits.
+- **View previous visits:** reopen a plan in progress, or open an agreed visit's take-home summary
+  (PDF download included).
+- **Clinic price list** (bottom right): change prices and the explanations owners see.
+
+If a page says it couldn't load, the backend is still waking up: wait a few seconds and refresh.
+
 ## Repo layout
 
 ```
@@ -122,5 +144,5 @@ npm run dev
 - [x] Setup page: symptom chips → `/suggest` (templates are the fallback)
 - [ ] Summary page: PDF + email buttons
 - [ ] Split-with-roommate approvals (needs a `shares` table)
-- [ ] Deploy: Vercel (frontend) + Render (backend, `render.yaml`)
+- [x] Deploy: Vercel (frontend) + Render (backend, `render.yaml`)
 - [ ] Stretch: estimate PDF upload, vet student trainer

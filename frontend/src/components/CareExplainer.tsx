@@ -46,7 +46,7 @@ export function CareExplainer({
   const [stage, setStage] = useState<Stage>(0);
 
   const steps: { title: string; red?: boolean }[] = [
-    { title: `We have multiple customized plans to keep ${petName} healthy` },
+    { title: `We have multiple options to keep ${petName} healthy` },
     { title: "Choose your plan based on your preferences", red: true },
     { title: `Here's what each group means for ${petName}` },
   ];

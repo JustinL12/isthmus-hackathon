@@ -14,8 +14,16 @@ import type { PlanSummary } from "@/lib/types";
 import { card, input, secondaryButton } from "@/lib/ui";
 
 const STATUS = {
-  draft: { label: "In progress", tone: "bg-soon-soft text-soon", total: "Selected so far" },
-  agreed: { label: "Agreed", tone: "bg-optional-soft text-optional", total: "Done today" },
+  draft: {
+    label: "In progress",
+    tone: "bg-soon-soft text-soon",
+    total: "Selected so far",
+  },
+  agreed: {
+    label: "Agreed",
+    tone: "bg-optional-soft text-optional",
+    total: "Done today",
+  },
 } as const;
 
 // "Sep 26, 2026 · 3:18 PM" in the viewer's time zone (created_at is an ISO date-time).
@@ -23,14 +31,40 @@ function formatWhen(iso: string | null) {
   if (!iso) return null;
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return null;
-  const day = d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-  const time = d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  const day = d.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  const time = d.toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
   return `${day} · ${time}`;
 }
 
+// The status dropdown beside the search box.
+const FILTERS = {
+  all: { label: "All visits", keeps: () => true },
+  continue: {
+    label: "Continue",
+    keeps: (v: PlanSummary) => v.status === "draft",
+  },
+  completed: {
+    label: "Completed",
+    keeps: (v: PlanSummary) => v.status === "agreed",
+  },
+} as const;
+type Filter = keyof typeof FILTERS;
+
 const matches = (v: PlanSummary, query: string) => {
   const q = query.trim().toLowerCase();
-  return !q || [v.pet.name, v.owner_name, v.pet.reason ?? ""].some((s) => s.toLowerCase().includes(q));
+  return (
+    !q ||
+    [v.pet.name, v.owner_name, v.pet.reason ?? ""].some((s) =>
+      s.toLowerCase().includes(q),
+    )
+  );
 };
 
 export default function VisitsPage() {
@@ -38,6 +72,7 @@ export default function VisitsPage() {
   const [loadError, setLoadError] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<Filter>("all");
 
   useEffect(() => {
     let cancelled = false;
@@ -54,11 +89,17 @@ export default function VisitsPage() {
     };
   }, [loadAttempt]);
 
-  const shown = visits?.filter((v) => matches(v, query)) ?? [];
+  const shown =
+    visits?.filter((v) => FILTERS[filter].keeps(v) && matches(v, query)) ?? [];
+  const narrowed = query.trim() !== "" || filter !== "all";
 
   return (
     <div className="flex-1 text-ink">
-      <AppHeader title="Previous visits" subtitle="Newest first" badge="Vet team" />
+      <AppHeader
+        title="Previous visits"
+        subtitle="Newest first"
+        badge="Vet team"
+      />
       <main className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-8">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <PageIntro
@@ -77,8 +118,12 @@ export default function VisitsPage() {
 
         {loadError ? (
           <div className={`${card} max-w-xl space-y-3 p-6`}>
-            <h2 className="text-xl font-extrabold tracking-tight">Couldn&apos;t load visits</h2>
-            <p className="text-muted">Check that the Isthmus Care server is running, then try again.</p>
+            <h2 className="text-xl font-extrabold tracking-tight">
+              Couldn&apos;t load visits
+            </h2>
+            <p className="text-muted">
+              Check that the Isthmus Care server is running, then try again.
+            </p>
             <button
               onClick={() => {
                 setLoadError(false);
@@ -96,29 +141,62 @@ export default function VisitsPage() {
           </div>
         ) : visits.length === 0 ? (
           <div className={`${card} max-w-xl space-y-3 p-6`}>
-            <h2 className="text-xl font-extrabold tracking-tight">No visits yet</h2>
-            <p className="text-muted">Visits you start show up here, newest first.</p>
+            <h2 className="text-xl font-extrabold tracking-tight">
+              No visits yet
+            </h2>
+            <p className="text-muted">
+              Visits you start show up here, newest first.
+            </p>
             <Link href="/setup?new=1" className={secondaryButton}>
               Start a new visit
             </Link>
           </div>
         ) : (
           <>
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              aria-label="Search visits"
-              placeholder="Search by pet, owner, or reason"
-              className={`max-w-md ${input}`}
-            />
+            <div className="flex max-w-2xl flex-wrap gap-3">
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                aria-label="Search visits"
+                placeholder="Search by pet, owner, or reason"
+                className={`min-w-60 flex-1 ${input}`}
+              />
+              <select
+                value={filter}
+                onChange={(e) => setFilter(e.target.value as Filter)}
+                aria-label="Show visits"
+                className={`w-auto cursor-pointer pr-9 ${input}`}
+              >
+                {(Object.keys(FILTERS) as Filter[]).map((f) => (
+                  <option key={f} value={f}>
+                    {FILTERS[f].label} ({visits.filter(FILTERS[f].keeps).length}
+                    )
+                  </option>
+                ))}
+              </select>
+            </div>
             <p className="text-sm text-muted" aria-live="polite">
-              {query.trim()
+              {narrowed
                 ? `${shown.length} of ${visits.length} ${visits.length === 1 ? "visit" : "visits"}`
                 : `${visits.length} ${visits.length === 1 ? "visit" : "visits"}`}
             </p>
             {shown.length === 0 ? (
-              <p className="text-muted">No visits match &ldquo;{query.trim()}&rdquo;.</p>
+              <p className="text-muted">
+                {query.trim() ? (
+                  <>
+                    No{" "}
+                    {filter === "all"
+                      ? ""
+                      : `${FILTERS[filter].label.toLowerCase()} `}
+                    visits match &ldquo;{query.trim()}&rdquo;.
+                  </>
+                ) : filter === "continue" ? (
+                  "No visits in progress. Everything has been agreed."
+                ) : (
+                  "No completed visits yet."
+                )}
+              </p>
             ) : (
               <ul className="grid gap-3">
                 {shown.map((v) => (
@@ -137,10 +215,15 @@ function VisitRow({ visit: v }: { visit: PlanSummary }) {
   const status = STATUS[v.status];
   const when = formatWhen(v.created_at);
   // Same pet description as the plan header (age, breed, weight when known).
-  const details = [describePet(v.pet), v.pet.reason].filter(Boolean).join(" · ");
+  const details = [describePet(v.pet), v.pet.reason]
+    .filter(Boolean)
+    .join(" · ");
   const action =
     v.status === "agreed"
-      ? v.share_token && { href: `/summary/${v.share_token}`, label: "View summary" }
+      ? v.share_token && {
+          href: `/summary/${v.share_token}`,
+          label: "View summary",
+        }
       : { href: `/plan/${v.id}/arrange`, label: "Continue" };
 
   return (
@@ -148,7 +231,11 @@ function VisitRow({ visit: v }: { visit: PlanSummary }) {
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="text-lg font-semibold">{v.pet.name}</h2>
-          <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${status.tone}`}>{status.label}</span>
+          <span
+            className={`rounded-md px-2 py-0.5 text-xs font-semibold ${status.tone}`}
+          >
+            {status.label}
+          </span>
         </div>
         {details && <p className="text-sm text-slate">{details}</p>}
         <p className="text-sm text-muted">
@@ -157,13 +244,20 @@ function VisitRow({ visit: v }: { visit: PlanSummary }) {
         </p>
       </div>
       <div className="text-right">
-        <p className="font-serif text-3xl leading-none tabular-nums">{money(v.total_today)}</p>
+        <p className="font-serif text-3xl leading-none tabular-nums">
+          {money(v.total_today)}
+        </p>
         <p className="mt-1 text-xs text-muted">
-          {status.total} · {v.item_count} {v.item_count === 1 ? "item" : "items"}
+          {status.total} · {v.item_count}{" "}
+          {v.item_count === 1 ? "item" : "items"}
         </p>
       </div>
       {action && (
-        <Link href={action.href} className={secondaryButton} aria-label={`${action.label}: ${v.pet.name}, ${v.owner_name}`}>
+        <Link
+          href={action.href}
+          className={secondaryButton}
+          aria-label={`${action.label}: ${v.pet.name}, ${v.owner_name}`}
+        >
           {action.label} →
         </Link>
       )}
