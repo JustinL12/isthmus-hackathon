@@ -1,7 +1,8 @@
 "use client";
 
-// Shared screen, step 3 of 3: pick today's care. The owner ticks items and whole groups, the
-// vet can drag items between groups, and the sidebar keeps the total against the budget.
+// Shared screen, step 3 of 3: pick today's care. The owner ticks items and whole groups, and the
+// sidebar keeps the total against the budget. Items can't be moved between groups here; the vet
+// sorts them in vet setup (step 4, /plan/[id]/arrange).
 // "Agree & send summary" saves the plan and opens the take-home summary.
 
 import Link from "next/link";
@@ -41,9 +42,6 @@ export default function ChoosePage({ params }: { params: Promise<{ id: string }>
 
   const toggle = (itemId: string) =>
     save({ items: plan.items.map((i) => (i.id === itemId ? { ...i, selected: !i.selected } : i)) });
-
-  const move = (itemId: string, group: Group) =>
-    save({ items: plan.items.map((i) => (i.id === itemId ? { ...i, group } : i)) });
 
   const setGroupSelected = (group: Group, selected: boolean) =>
     save({ items: plan.items.map((i) => (i.group === group ? { ...i, selected } : i)) });
@@ -97,8 +95,6 @@ export default function ChoosePage({ params }: { params: Promise<{ id: string }>
               <GroupBoard
                 items={plan.items}
                 petName={pet.name}
-                draggable
-                onMove={move}
                 onToggle={toggle}
                 detailsAlwaysVisible
                 expandable

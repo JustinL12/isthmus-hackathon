@@ -43,9 +43,8 @@ export function CareExplainer({
 }) {
   const reduceMotion = useReducedMotion() ?? false;
   const [stage, setStage] = useState<Stage>(0);
-  const groups = GROUPS.map((g) => ({ ...g, items: items.filter((i) => i.group === g.id) })).filter(
-    (g) => g.items.length > 0,
-  );
+  // All three groups, always: the owner learns what each means even if one is empty today.
+  const groups = GROUPS.map((g) => ({ ...g, items: items.filter((i) => i.group === g.id) }));
 
   const copy = [
     {
@@ -159,7 +158,9 @@ export function CareExplainer({
                     className={`rounded-2xl p-5 ${GROUP_TONE[g.id]}`}
                   >
                     <h3 className="text-lg font-bold">{g.label}</h3>
-                    <p className="mt-1 text-sm opacity-80">{g.items.map((i) => i.name).join(" · ")}</p>
+                    <p className="mt-1 text-sm opacity-80">
+                      {g.items.length ? g.items.map((i) => i.name).join(" · ") : `Nothing in this group for ${petName} today.`}
+                    </p>
                   </motion.div>,
                   <motion.div
                     key={`${g.id}-definition`}
