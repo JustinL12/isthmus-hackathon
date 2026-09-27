@@ -354,7 +354,6 @@ export default function DecisionPage({ params }: { params: Promise<{ id: string 
                 <CareExplainer
                   petName={pet.name}
                   items={plan.items}
-                  resourcesHref={`/plan/${id}/resources`}
                   onShowPlan={() => {
                     if (planReady) return scrollToPlan(details.current);
                     jumpToPlan.current = true;
