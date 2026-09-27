@@ -45,7 +45,7 @@ export const planItemFromCatalog = (
   name: item.name,
   price: item.price,
   group,
-  selected: true,
+  selected: group === "essential", // choose care starts with only the essentials ticked
   vet_note: null,
   explanation: explanations[item.id] ?? null,
   recheck_date: null,

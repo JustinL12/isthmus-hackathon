@@ -25,6 +25,7 @@ from dataclasses import dataclass, field
 
 from .. import store
 from ..models import Plan
+from ..species import SPECIES
 
 log = logging.getLogger(__name__)
 
@@ -72,7 +73,7 @@ def array_lit(ids: list[str]) -> str:
 
 
 def _check_input(species: str, symptoms: list[str]) -> None:
-    if species not in ("cat", "dog") or not all(_SAFE_ID.match(s) for s in symptoms):
+    if species not in SPECIES or not all(_SAFE_ID.match(s) for s in symptoms):
         raise ValueError("invalid species or symptoms")
 
 

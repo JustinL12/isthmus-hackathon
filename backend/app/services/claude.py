@@ -6,6 +6,7 @@ from collections import Counter
 
 from .. import store
 from ..models import Explanation, ItemChoice, ParsedLineItem, SuggestRequest
+from ..species import noun
 from .databricks import ItemStat, SimilarCases
 
 MODEL = "claude-sonnet-5"
@@ -63,7 +64,7 @@ can understand. The vet reviews and makes the final call."""
 def describe_pet(species: str, age_years: float | None, breed: str | None, weight_lbs: float | None) -> str:
     """e.g. "cat, Domestic Shorthair, 12 years, 9.5 lbs" (unknown breed and weight left out)."""
     parts = [
-        species,
+        noun(species),  # "guinea pig", not the id "guinea-pig"
         breed.strip() if breed else None,
         f"{age_years:g} years" if age_years is not None else "age unknown",
         f"{weight_lbs:g} lbs" if weight_lbs is not None else None,

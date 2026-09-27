@@ -9,9 +9,10 @@ import { type FormEvent, type ReactNode, use, useEffect, useRef } from "react";
 import { AppHeader, PageIntro } from "@/components/AppChrome";
 import { ChromaticLabel } from "@/components/ChromaticLabel";
 import { SetupStepper } from "@/components/setup/SetupStepper";
-import { BREEDS, OTHER_BREEDS } from "@/lib/breeds";
+import { SpeciesSearch } from "@/components/setup/SpeciesSearch";
+import { breedsFor } from "@/lib/breeds";
 import { MAX_WEIGHT_LBS, resetDraft, updateDraft, useHydrated, useSetupDraft } from "@/lib/setup-draft";
-import { card, ctaWrapper, fieldLabel, input, inputBase, sectionLabel, segmentOption, segmentTrack } from "@/lib/ui";
+import { card, ctaWrapper, fieldLabel, input, inputBase, sectionLabel } from "@/lib/ui";
 import { PageSpinner } from "@/components/Spinner";
 
 function Shell({ children }: { children: ReactNode }) {
@@ -83,34 +84,20 @@ export default function PatientStep({
               {...notBlank}
             />
           </label>
-          <fieldset>
-            <legend className={fieldLabel}>Species</legend>
-            <div className={`mt-1 grid-cols-2 ${segmentTrack}`}>
-              {(["cat", "dog"] as const).map((s) => (
-                <label
-                  key={s}
-                  className={`flex cursor-pointer items-center justify-center capitalize has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ink ${segmentOption(
-                    draft.species === s,
-                  )}`}
-                >
-                  <input
-                    type="radio"
-                    name="species"
-                    value={s}
-                    checked={draft.species === s}
-                    // A new species makes the picked template and the breed wrong; step 3 picks again.
-                    onChange={() =>
-                      s !== draft.species && updateDraft({ species: s, templateId: "", breed: "" })
-                    }
-                    className="sr-only"
-                  />
-                  {s}
-                </label>
-              ))}
-            </div>
-          </fieldset>
+          <div>
+            <label htmlFor="species" className={fieldLabel}>
+              Species
+            </label>
+            <SpeciesSearch
+              id="species"
+              value={draft.species}
+              // A new species makes the picked template and the breed wrong; step 3 picks again.
+              onChange={(species) => updateDraft({ species, templateId: "", breed: "" })}
+            />
+          </div>
           <label className={fieldLabel}>
-            Breed <span className="font-normal text-muted">(optional)</span>
+            {draft.species === "other" ? "What kind of animal" : "Breed"}{" "}
+            <span className="font-normal text-muted">(optional)</span>
             <input
               className={`mt-1 ${input}`}
               list="breed-options"
@@ -120,7 +107,7 @@ export default function PatientStep({
               onChange={(e) => updateDraft({ breed: e.target.value })}
             />
             <datalist id="breed-options">
-              {[...BREEDS[draft.species], ...OTHER_BREEDS].map((b) => (
+              {breedsFor(draft.species).map((b) => (
                 <option key={b} value={b} />
               ))}
             </datalist>

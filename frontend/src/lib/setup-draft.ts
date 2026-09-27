@@ -3,6 +3,7 @@
 // button and a reload all keep it. Read through useSetupDraft(); change with updateDraft().
 
 import { useSyncExternalStore } from "react";
+import { isSpecies } from "./species";
 import type { CreatePlanRequest, Plan, Species } from "./types";
 
 export interface SetupDraft {
@@ -65,7 +66,7 @@ function sanitize(raw: unknown): SetupDraft {
   const plan = r.plan as Record<string, unknown> | null | undefined;
   return {
     petName: str(r.petName, DEFAULT_DRAFT.petName),
-    species: r.species === "dog" ? "dog" : "cat",
+    species: isSpecies(r.species) ? r.species : DEFAULT_DRAFT.species,
     age: str(r.age, DEFAULT_DRAFT.age),
     breed: str(r.breed, ""),
     weight: str(r.weight, ""),

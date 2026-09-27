@@ -2,7 +2,8 @@
 // keep spelling consistent, which helps similar-case matching (backend compares breeds by name).
 import type { Species } from "./types";
 
-export const BREEDS: Record<Species, readonly string[]> = {
+// Only cats and dogs have a list; other species just get OTHER_BREEDS (see breedsFor).
+export const BREEDS: Partial<Record<Species, readonly string[]>> = {
   cat: [
     "Domestic Shorthair",
     "Domestic Mediumhair",
@@ -73,5 +74,8 @@ export const BREEDS: Record<Species, readonly string[]> = {
   ],
 };
 
-/** Also offered for both species. */
+/** Also offered for every species. */
 export const OTHER_BREEDS = ["Mixed breed", "Unknown"] as const;
+
+/** Breed suggestions for a species (just OTHER_BREEDS when it has no list). */
+export const breedsFor = (species: Species): readonly string[] => [...(BREEDS[species] ?? []), ...OTHER_BREEDS];

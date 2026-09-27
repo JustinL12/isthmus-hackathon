@@ -16,6 +16,7 @@ from collections import Counter
 
 from .. import store
 from ..models import Plan, Template
+from ..species import plural
 from . import claude, databricks
 from .databricks import AGE_BANDS, DOG_SIZES, Cluster
 
@@ -68,7 +69,7 @@ def describe_patients(c: Cluster) -> str:
     ranges = [range_label(r["age_min"], r["age_max"], "yrs")]
     if c.size_band != "any":
         ranges.append(range_label(r["weight_min_lbs"], r["weight_max_lbs"], "lbs"))
-    return f"{_AGE_WORDS[c.age_band]}{size} {c.species}s ({', '.join(ranges)})"
+    return f"{_AGE_WORDS[c.age_band]}{size} {plural(c.species)} ({', '.join(ranges)})"
 
 
 def visit_count(c: Cluster) -> int:
