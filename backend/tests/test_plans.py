@@ -1,3 +1,5 @@
+from urllib.parse import quote
+
 from app.services import databricks, email
 
 from .conftest import MOCHI
@@ -36,6 +38,28 @@ def test_mochi_template_flow(client, monkeypatch):
     assert client.get(f"/api/share/{agreed['share_token']}").json()["id"] == plan["id"]
     pdf = client.get(f"/api/share/{agreed['share_token']}/pdf")
     assert pdf.headers["content-type"] == "application/pdf" and pdf.content.startswith(b"%PDF")
+
+
+def test_pdf_download_any_pet_name(client):
+    # Header values must be Latin-1: names like these used to crash the PDF download (500)
+    # or produce a broken header.
+    cases = {
+        "Mochi": 'filename="Mochi-care-plan.pdf"',
+        'Mr. "Whiskers"': 'filename="Mr.-Whiskers-care-plan.pdf"',
+        "Café": 'filename="Caf-care-plan.pdf"',
+        "Mochi 🐱": 'filename="Mochi-care-plan.pdf"',
+        "小白": 'filename="care-plan.pdf"',
+    }
+    for name, ascii_part in cases.items():
+        plan = client.post(
+            "/api/plans", json={**MOCHI, "pet": {**MOCHI["pet"], "name": name}, "template_id": "vomiting-senior-cat"}
+        ).json()
+        token = client.post(f"/api/plans/{plan['id']}/agree").json()["share_token"]
+        pdf = client.get(f"/api/share/{token}/pdf")
+        assert pdf.status_code == 200 and pdf.content.startswith(b"%PDF"), name
+        disposition = pdf.headers["content-disposition"]
+        assert disposition.startswith("attachment; ") and ascii_part in disposition, (name, disposition)
+        assert f"filename*=UTF-8''{quote(f'{name}-care-plan.pdf', safe='')}" in disposition, (name, disposition)
 
 
 def test_create_from_suggested_items(client):

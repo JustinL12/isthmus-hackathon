@@ -1,19 +1,19 @@
 "use client";
 
 import { AnimatePresence, motion, type Transition, useReducedMotion } from "framer-motion";
-import Link from "next/link";
 import { type ReactNode, useLayoutEffect, useRef, useState } from "react";
 import { FlipText } from "@/components/FlipText";
 import { GROUP_TONE } from "@/components/GroupBoard";
 import { GROUPS, type Group, type PlanItem } from "@/lib/types";
 
 // Walks the owner through how the estimate is organized, one screen at a time:
-//   0. overview  ->  1. the three groups and what they mean  ->  2. lower-cost options
-// "Next" flips the heading to the next message (components/FlipText); the group rows
-// pop in under it on step 1 and fade away for step 2. "See the full plan" moves on to
-// /plan/[id]/choose.
+//   0. overview  ->  1. the three groups and what they mean
+// "Next" flips the heading to the next message (components/FlipText); the group rows pop in
+// under it on step 1. "See the full plan" moves on to /plan/[id]/choose, which also links
+// to the lower-cost Madison options.
 
-type Stage = 0 | 1 | 2;
+type Stage = 0 | 1;
+const LAST_STAGE: Stage = 1;
 
 const DEFINITIONS: Record<Group, (pet: string) => string> = {
   essential: (pet) => `Care tied to why ${pet} is here today. Your vet recommends starting these now.`,
@@ -34,12 +34,10 @@ const ROW_RISE = { y: 44, duration: 1.4 }; // group rows drift in slower, to rea
 export function CareExplainer({
   petName,
   items,
-  resourcesHref,
   onShowPlan,
 }: {
   petName: string;
   items: PlanItem[];
-  resourcesHref: string;
   /** "See the full plan" (or "Skip to full plan"). */
   onShowPlan: () => void;
 }) {
@@ -60,15 +58,10 @@ export function CareExplainer({
       title: `Here's what each group means for ${petName}`,
       body: "Every item on the estimate falls into one of these. Your vet makes the final call on each.",
     },
-    {
-      eyebrow: "Tight on budget?",
-      title: "Lower-cost care options are available",
-      body: "Lower-cost clinics in Madison can cost 2–3× less for some care. Eligibility applies.",
-    },
   ][stage];
 
   function next() {
-    if (stage < 2) setStage((stage + 1) as Stage);
+    if (stage < LAST_STAGE) setStage((stage + 1) as Stage);
   }
 
   // One box easing up into place after `delay` seconds (a quick fade with reduced motion).
@@ -85,9 +78,7 @@ export function CareExplainer({
     <section aria-label={`How ${petName}'s estimate is organized`} className="space-y-4">
         <motion.div
           {...rise(0.15)}
-          className={`rounded-2xl border p-6 shadow-[0_16px_50px_-24px_rgba(20,17,10,0.25)] transition-colors duration-700 sm:p-7 ${
-            stage === 2 ? "border-badger/25 bg-[#fbeeec]" : "border-line bg-white"
-          }`}
+          className="rounded-2xl border border-line bg-white p-6 shadow-[0_16px_50px_-24px_rgba(20,17,10,0.25)] sm:p-7"
         >
           <SmoothHeight reduceMotion={reduceMotion}>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-badger">
@@ -113,7 +104,7 @@ export function CareExplainer({
           </SmoothHeight>
 
           <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-3">
-            {stage < 2 ? (
+            {stage < LAST_STAGE ? (
               <>
                 <button
                   onClick={next}
@@ -127,35 +118,27 @@ export function CareExplainer({
                 <button onClick={onShowPlan} className="text-sm text-muted underline-offset-4 hover:text-ink hover:underline">
                   Skip to full plan
                 </button>
-                <span className="ml-auto text-sm text-muted tabular-nums" aria-label={`Step ${stage + 1} of 3`}>
-                  {stage + 1} / 3
+                <span
+                  className="ml-auto text-sm text-muted tabular-nums"
+                  aria-label={`Step ${stage + 1} of ${LAST_STAGE + 1}`}
+                >
+                  {stage + 1} / {LAST_STAGE + 1}
                 </span>
               </>
             ) : (
-              <>
-                <button
-                  onClick={onShowPlan}
-                  className="flex items-center gap-3 rounded-full bg-ink px-6 py-2.5 font-semibold text-white transition-transform duration-200 hover:scale-[1.04] active:scale-[0.98] motion-reduce:transition-none"
+              <button
+                onClick={onShowPlan}
+                className="flex items-center gap-3 rounded-full bg-ink px-6 py-2.5 font-semibold text-white transition-transform duration-200 hover:scale-[1.04] active:scale-[0.98] motion-reduce:transition-none"
+              >
+                See the full plan
+                <motion.span
+                  aria-hidden
+                  animate={reduceMotion ? undefined : { x: [0, 4, 0] }}
+                  transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
                 >
-                  See the full plan
-                  <motion.span
-                    aria-hidden
-                    animate={reduceMotion ? undefined : { x: [0, 4, 0] }}
-                    transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
-                  >
-                    →
-                  </motion.span>
-                </button>
-                <Link
-                  href={resourcesHref}
-                  className="group/link font-semibold whitespace-nowrap text-badger underline-offset-4 hover:underline"
-                >
-                  See Madison options{" "}
-                  <span aria-hidden className="inline-block transition-transform group-hover/link:translate-x-0.5">
-                    →
-                  </span>
-                </Link>
-              </>
+                  →
+                </motion.span>
+              </button>
             )}
           </div>
         </motion.div>

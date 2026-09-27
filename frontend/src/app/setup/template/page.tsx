@@ -37,11 +37,12 @@ const suggestions = new Map<string, SuggestResponse>();
 const overlap = (t: Template, symptoms: string[]) => t.symptoms.filter((s) => symptoms.includes(s)).length;
 
 // The template to preselect: best symptom match for the species, else the demo case, else the first that fits.
+// Only the pet's species: templates for the other species are hidden, so never preselect one.
 function defaultTemplate(templates: Template[], d: SetupDraft) {
   const fits = templates.filter((t) => t.species === d.species);
   const best = [...fits].sort((a, b) => overlap(b, d.symptoms) - overlap(a, d.symptoms))[0];
   if (best && overlap(best, d.symptoms) > 0) return best;
-  return fits.find((t) => t.id === DEFAULT_TEMPLATE) ?? fits[0] ?? templates[0] ?? null;
+  return fits.find((t) => t.id === DEFAULT_TEMPLATE) ?? fits[0] ?? null;
 }
 
 function patientLine(d: SetupDraft) {
@@ -170,7 +171,8 @@ export default function TemplateStep() {
   const aiName = symptomText ? symptomText.charAt(0).toUpperCase() + symptomText.slice(1).toLowerCase() : "AI draft";
   // The visit reason the owner sees: the symptoms, else what the vet started from.
   const visitReason = (fallback: string) => (symptomText ? aiName : fallback);
-  const pickedTemplate = templates.find((t) => t.id === draft.templateId);
+  // A pick only counts if it's for this species (e.g. not a dog template left over from a plan's "Back").
+  const pickedTemplate = templates.find((t) => t.id === draft.templateId && t.species === draft.species);
   // Explicit pick, else the AI draft when there are symptoms, else the best template.
   const choice: string | null =
     draft.templateId === AI_DRAFT && aiAvailable
@@ -240,8 +242,8 @@ export default function TemplateStep() {
   }
 
   const byMatch = (a: Template, b: Template) => overlap(b, draft.symptoms) - overlap(a, draft.symptoms);
+  // Only templates for this pet's species are shown.
   const matching = templates.filter((t) => t.species === draft.species).sort(byMatch);
-  const others = templates.filter((t) => t.species !== draft.species);
   const forwardLabel = sameAsBuilt ? "Next: Sort items" : "Build plan";
   const age = optionalNumber(draft.age);
   const budget = optionalNumber(draft.budget);
@@ -387,14 +389,16 @@ export default function TemplateStep() {
             {templates.length === 0 ? (
               <Spinner label="Loading templates" />
             ) : (
-              <>
-                <TemplateGroup title={matching.length ? `Visit templates for ${draft.species}s` : "Visit templates"}>
-                  {(matching.length ? matching : others).map(templateCard)}
-                </TemplateGroup>
-                {matching.length > 0 && others.length > 0 && (
-                  <TemplateGroup title="Other templates">{others.map(templateCard)}</TemplateGroup>
+              <TemplateGroup title={`Visit templates for ${draft.species}s`}>
+                {matching.length ? (
+                  matching.map(templateCard)
+                ) : (
+                  <p className="rounded-2xl border border-dashed border-line px-5 py-4 text-sm text-muted">
+                    No visit templates for {draft.species}s yet. Skip the template to build the plan from the price
+                    list.
+                  </p>
                 )}
-              </>
+              </TemplateGroup>
             )}
             <TemplateGroup title="No template">
               <label className={optionClass(choice === SKIP_TEMPLATE)}>

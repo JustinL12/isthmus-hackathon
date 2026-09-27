@@ -33,7 +33,6 @@ export default function ExplainPage({ params }: { params: Promise<{ id: string }
             <CareExplainer
               petName={plan.pet.name}
               items={plan.items}
-              resourcesHref={`/plan/${id}/resources`}
               onShowPlan={() => router.push(next)}
             />
           </div>
