@@ -1,3 +1,5 @@
+from urllib.parse import quote
+
 from app.services import databricks, email
 
 from .conftest import MOCHI
@@ -36,6 +38,58 @@ def test_mochi_template_flow(client, monkeypatch):
     assert client.get(f"/api/share/{agreed['share_token']}").json()["id"] == plan["id"]
     pdf = client.get(f"/api/share/{agreed['share_token']}/pdf")
     assert pdf.headers["content-type"] == "application/pdf" and pdf.content.startswith(b"%PDF")
+
+
+def test_list_plans(client):
+    assert client.get("/api/plans").json() == []
+
+    def make(name):
+        return client.post(
+            "/api/plans", json={**MOCHI, "pet": {**MOCHI["pet"], "name": name}, "template_id": "vomiting-senior-cat"}
+        ).json()
+
+    first, second, third = make("First"), make("Second"), make("Third")
+    # Updating or agreeing to a plan doesn't move it in the list.
+    items = [{**i, "selected": i["group"] == "essential"} for i in first["items"]]
+    client.patch(f"/api/plans/{first['id']}", json={"items": items})
+    agreed = client.post(f"/api/plans/{first['id']}/agree").json()
+
+    rows = client.get("/api/plans").json()
+    assert [r["pet"]["name"] for r in rows] == ["Third", "Second", "First"]  # newest first
+    newest, oldest = rows[0], rows[-1]
+    assert newest["status"] == "draft" and newest["share_token"] is None
+    assert newest["item_count"] == len(third["items"]) and newest["total_today"] == 780  # all ticked by default
+    assert oldest["status"] == "agreed" and oldest["share_token"] == agreed["share_token"]
+    assert oldest["total_today"] == 360 and oldest["owner_name"] == "Alex"
+    assert all(r["created_at"] for r in rows)
+    assert set(rows[0]) == {"id", "pet", "owner_name", "status", "share_token", "item_count", "total_today", "created_at"}
+
+    assert [r["pet"]["name"] for r in client.get("/api/plans?limit=2").json()] == ["Third", "Second"]
+    assert client.get("/api/plans?limit=0").status_code == 422
+    assert client.get("/api/plans?limit=500").status_code == 422
+    assert second["id"] in {r["id"] for r in rows}
+
+
+def test_pdf_download_any_pet_name(client):
+    # Header values must be Latin-1: names like these used to crash the PDF download (500)
+    # or produce a broken header.
+    cases = {
+        "Mochi": 'filename="Mochi-care-plan.pdf"',
+        'Mr. "Whiskers"': 'filename="Mr.-Whiskers-care-plan.pdf"',
+        "Café": 'filename="Caf-care-plan.pdf"',
+        "Mochi 🐱": 'filename="Mochi-care-plan.pdf"',
+        "小白": 'filename="care-plan.pdf"',
+    }
+    for name, ascii_part in cases.items():
+        plan = client.post(
+            "/api/plans", json={**MOCHI, "pet": {**MOCHI["pet"], "name": name}, "template_id": "vomiting-senior-cat"}
+        ).json()
+        token = client.post(f"/api/plans/{plan['id']}/agree").json()["share_token"]
+        pdf = client.get(f"/api/share/{token}/pdf")
+        assert pdf.status_code == 200 and pdf.content.startswith(b"%PDF"), name
+        disposition = pdf.headers["content-disposition"]
+        assert disposition.startswith("attachment; ") and ascii_part in disposition, (name, disposition)
+        assert f"filename*=UTF-8''{quote(f'{name}-care-plan.pdf', safe='')}" in disposition, (name, disposition)
 
 
 def test_create_from_suggested_items(client):

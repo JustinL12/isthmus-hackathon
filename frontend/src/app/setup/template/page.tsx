@@ -57,12 +57,13 @@ function orderTemplates(templates: Template[], d: SetupDraft, ranks: TemplateRan
 }
 
 // The template to preselect: the best fit for this patient, else the demo case, else the first that fits.
+// Only the pet's species: templates for the other species are hidden, so never preselect one.
 function defaultTemplate(templates: Template[], d: SetupDraft, ranks: TemplateRank[] | null) {
   const fits = orderTemplates(templates, d, ranks);
   const best = fits[0];
   const bestScore = ranks?.find((r) => r.template_id === best?.id)?.score;
   if (best && (bestScore != null ? bestScore > 0 : overlap(best, d.symptoms) > 0)) return best;
-  return fits.find((t) => t.id === DEFAULT_TEMPLATE) ?? fits[0] ?? templates[0] ?? null;
+  return fits.find((t) => t.id === DEFAULT_TEMPLATE) ?? fits[0] ?? null;
 }
 
 const profile = (d: SetupDraft) => ({
@@ -218,7 +219,8 @@ export default function TemplateStep() {
   const aiName = symptomText ? symptomText.charAt(0).toUpperCase() + symptomText.slice(1).toLowerCase() : "AI draft";
   // The visit reason the owner sees: the symptoms, else what the vet started from.
   const visitReason = (fallback: string) => (symptomText ? aiName : fallback);
-  const pickedTemplate = templates.find((t) => t.id === draft.templateId);
+  // A pick only counts if it's for this species (e.g. not a dog template left over from a plan's "Back").
+  const pickedTemplate = templates.find((t) => t.id === draft.templateId && t.species === draft.species);
   // Explicit pick, else the AI draft when there are symptoms, else the best template.
   const choice: string | null =
     draft.templateId === AI_DRAFT && aiAvailable
@@ -288,8 +290,8 @@ export default function TemplateStep() {
     }
   }
 
+  // Only templates for this pet's species are shown, best fit first.
   const matching = orderTemplates(templates, draft, ranks);
-  const others = templates.filter((t) => t.species !== draft.species);
   const reasonsFor = (t: Template) => {
     const rank = ranks?.find((r) => r.template_id === t.id);
     if (rank) return rank.reasons;
@@ -476,16 +478,20 @@ export default function TemplateStep() {
               <Spinner label="Loading templates" />
             ) : (
               <>
-                <TemplateGroup title={matching.length ? `Visit templates for ${draft.species}s` : "Visit templates"}>
-                  {(matching.length ? matching : others).map(templateCard)}
+                <TemplateGroup title={`Visit templates for ${draft.species}s`}>
+                  {matching.length ? (
+                    matching.map(templateCard)
+                  ) : (
+                    <p className="rounded-2xl border border-dashed border-line px-5 py-4 text-sm text-muted">
+                      No visit templates for {draft.species}s yet. Skip the template to build the plan from the price
+                      list.
+                    </p>
+                  )}
                 </TemplateGroup>
                 {hideError && (
                   <p role="alert" className="text-sm text-bad">
                     {hideError}
                   </p>
-                )}
-                {matching.length > 0 && others.length > 0 && (
-                  <TemplateGroup title="Other templates">{others.map(templateCard)}</TemplateGroup>
                 )}
               </>
             )}

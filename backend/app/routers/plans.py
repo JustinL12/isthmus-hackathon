@@ -1,11 +1,13 @@
 """Plans: create (from suggestions or a template), update on the shared screen, agree, share, email."""
 
+import re
 import secrets
+from urllib.parse import quote
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Response
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Response
 
 from .. import store
-from ..models import CreatePlanRequest, EmailRequest, ItemChoice, Plan, PlanItem, UpdatePlanRequest
+from ..models import CreatePlanRequest, EmailRequest, ItemChoice, Plan, PlanItem, PlanSummary, UpdatePlanRequest
 from ..services import databricks, email, template_gen
 from ..services.rechecks import suggest_recheck
 from ..services.summary_pdf import build_pdf
@@ -76,6 +78,24 @@ def create_plan(req: CreatePlanRequest):
     return store.save_plan(plan)
 
 
+@router.get("/plans", response_model=list[PlanSummary])
+def list_plans(limit: int = Query(50, ge=1, le=200)):
+    """The clinic's visits, newest first (the vet's "Previous visits" page)."""
+    return [
+        PlanSummary(
+            id=p.id,
+            pet=p.pet,
+            owner_name=p.owner_name,
+            status=p.status,
+            share_token=p.share_token,
+            item_count=len(p.items),
+            total_today=sum(i.price for i in p.items if i.selected),
+            created_at=created,
+        )
+        for p, created in store.list_plans(limit)
+    ]
+
+
 @router.get("/plans/{plan_id}", response_model=Plan)
 def get_plan(plan_id: str):
     return _get_or_404(plan_id)
@@ -131,11 +151,20 @@ def get_shared_plan(token: str):
     return _shared_or_404(token)
 
 
+def _pdf_disposition(pet_name: str) -> str:
+    """Download header for the summary PDF. Header values must be Latin-1, so a name like
+    "Mochi 🐱" can't go in as-is: send an ASCII `filename` plus the exact name as UTF-8 in
+    `filename*` (RFC 6266), which browsers prefer."""
+    name = f"{pet_name.strip() or 'pet'}-care-plan.pdf"
+    ascii_name = re.sub(r"-{2,}", "-", re.sub(r"[^A-Za-z0-9._-]+", "-", name)).strip("-.") or "care-plan.pdf"
+    return f"attachment; filename=\"{ascii_name}\"; filename*=UTF-8''{quote(name, safe='')}"
+
+
 @router.get("/share/{token}/pdf")
 def get_shared_pdf(token: str):
     plan = _shared_or_404(token)
     return Response(
         build_pdf(plan),
         media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="{plan.pet.name}-care-plan.pdf"'},
+        headers={"Content-Disposition": _pdf_disposition(plan.pet.name)},
     )

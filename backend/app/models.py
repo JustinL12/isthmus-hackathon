@@ -1,6 +1,6 @@
 """Pydantic models. These mirror frontend/src/lib/types.ts — keep them in sync."""
 
-from datetime import date
+from datetime import date, datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -152,6 +152,19 @@ class Plan(BaseModel):
     source: PlanSource = "template"
     suggested: list["ItemChoice"] = []  # the AI draft as first shown, so vet changes can be learned from
     template_id: str | None = None  # what the vet started from: a template id, "ai" or "blank"
+
+
+class PlanSummary(BaseModel):
+    """One visit in the vet's "Previous visits" list (GET /plans)."""
+
+    id: str
+    pet: Pet
+    owner_name: str
+    status: PlanStatus
+    share_token: str | None = None
+    item_count: int
+    total_today: float  # items selected for today
+    created_at: datetime | None = None
 
 
 # ---- Request bodies ----

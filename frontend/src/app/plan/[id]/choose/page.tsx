@@ -1,7 +1,8 @@
 "use client";
 
-// Shared screen, step 3 of 3: pick today's care. The owner ticks items and whole groups, the
-// vet can drag items between groups, and the sidebar keeps the total against the budget.
+// Shared screen, step 3 of 3: pick today's care. The owner ticks items and whole groups, and the
+// sidebar keeps the total against the budget. Items can't be moved between groups here; the vet
+// sorts them in vet setup (step 4, /plan/[id]/arrange).
 // "Agree & send summary" saves the plan and opens the take-home summary.
 
 import Link from "next/link";
@@ -18,6 +19,7 @@ import { TakeHomeSummary } from "@/components/TakeHomeSummary";
 import { api } from "@/lib/api";
 import { fullTotal, money, todayTotal } from "@/lib/plan-math";
 import { GROUPS, type Group, type PaymentChoice } from "@/lib/types";
+import { focusRing } from "@/lib/ui";
 import { usePlan } from "@/lib/use-plan";
 
 // Board and sidebar float up on arrival (MotionConfig drops the motion for reduced-motion users).
@@ -35,14 +37,11 @@ export default function ChoosePage({ params }: { params: Promise<{ id: string }>
   if (!plan) return <PlanStatus error={error} />;
 
   const total = todayTotal(plan.items);
-  const overBudget = plan.budget != null && total > plan.budget;
+  const overBy = plan.budget != null && total > plan.budget ? total - plan.budget : 0;
   const { pet } = plan;
 
   const toggle = (itemId: string) =>
     save({ items: plan.items.map((i) => (i.id === itemId ? { ...i, selected: !i.selected } : i)) });
-
-  const move = (itemId: string, group: Group) =>
-    save({ items: plan.items.map((i) => (i.id === itemId ? { ...i, group } : i)) });
 
   const setGroupSelected = (group: Group, selected: boolean) =>
     save({ items: plan.items.map((i) => (i.group === group ? { ...i, selected } : i)) });
@@ -96,8 +95,6 @@ export default function ChoosePage({ params }: { params: Promise<{ id: string }>
               <GroupBoard
                 items={plan.items}
                 petName={pet.name}
-                draggable
-                onMove={move}
                 onToggle={toggle}
                 detailsAlwaysVisible
                 expandable
@@ -122,20 +119,41 @@ export default function ChoosePage({ params }: { params: Promise<{ id: string }>
                 onBudgetChange={(budget) => save({ budget })}
               />
 
+              {/* Right under the budget, and solid red once today's total is over it. */}
+              <Link
+                href={`/plan/${id}/resources`}
+                className={`group flex items-center gap-4 rounded-2xl p-4 transition ${focusRing} ${
+                  overBy > 0
+                    ? "bg-badger text-white shadow-lg shadow-badger/30 hover:brightness-110"
+                    : "border border-badger/25 bg-[#fbeeec] text-ink hover:border-badger/50"
+                }`}
+              >
+                <span className="min-w-0 flex-1">
+                  {overBy > 0 && (
+                    <span className="block text-xs font-semibold uppercase tracking-wider text-white/85">
+                      {money(overBy)} over {plan.owner_name}&apos;s budget
+                    </span>
+                  )}
+                  <span className="block text-lg leading-snug font-bold">Can&apos;t cover it today?</span>
+                  <span className={`block text-sm ${overBy > 0 ? "text-white/90" : "text-slate"}`}>
+                    See lower-cost Madison clinics and programs. Eligibility applies.
+                  </span>
+                </span>
+                <span
+                  aria-hidden
+                  className={`grid h-10 w-10 shrink-0 place-items-center rounded-full text-lg transition-transform duration-200 group-hover:translate-x-1 motion-reduce:transition-none ${
+                    overBy > 0 ? "bg-white text-badger" : "bg-badger text-white"
+                  }`}
+                >
+                  →
+                </span>
+              </Link>
+
               <PaymentToggle
                 value={plan.payment_choice}
                 total={total}
                 onChange={(payment_choice: PaymentChoice) => save({ payment_choice })}
               />
-
-              <Link
-                href={`/plan/${id}/resources`}
-                className={`block text-sm underline-offset-2 hover:underline ${
-                  overBudget ? "font-semibold text-bad" : "text-muted"
-                }`}
-              >
-                Can&apos;t cover it today? See lower-cost Madison options →
-              </Link>
 
               <hr className="border-line" />
 

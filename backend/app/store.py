@@ -9,6 +9,7 @@ Two backends, picked on first use:
 import json
 import os
 import secrets
+from datetime import datetime, timezone
 from functools import cache
 from pathlib import Path
 
@@ -136,6 +137,7 @@ def reset_memory() -> None:
     global _mem_catalog, _mem_explanations, _mem_symptoms, _mem_templates
     _mem_catalog = _mem_explanations = _mem_symptoms = _mem_templates = None
     _plans.clear()
+    _plan_created.clear()
     clear_caches()
     symptoms.cache_clear()
 
@@ -221,7 +223,8 @@ def resources() -> list[Resource]:
 
 # ---- Plans ----
 
-_plans: dict[str, Plan] = {}
+_plans: dict[str, Plan] = {}  # in creation order (re-saving a plan doesn't move it)
+_plan_created: dict[str, datetime] = {}  # memory mode's stand-in for the created_at column
 
 _PLAN_COLUMNS = (
     "id", "pet", "owner_name", "owner_email", "budget", "payment_choice", "status",
@@ -237,6 +240,7 @@ def new_id() -> str:
 def save_plan(plan: Plan) -> Plan:
     if not engine():
         _plans[plan.id] = plan
+        _plan_created.setdefault(plan.id, datetime.now(timezone.utc))
         return plan
 
     data = plan.model_dump(mode="json")
@@ -267,6 +271,15 @@ def get_plan(plan_id: str) -> Plan | None:
     if not engine():
         return _plans.get(plan_id)
     return _plan_from_row(_rows("select * from plans where id = :id", id=plan_id))
+
+
+def list_plans(limit: int) -> list[tuple[Plan, datetime | None]]:
+    """Up to `limit` plans with when each was created, newest first."""
+    if not engine():
+        newest = list(reversed(_plans))[:limit]  # dict order is creation order
+        return [(_plans[i], _plan_created.get(i)) for i in newest]
+    rows = _rows("select * from plans order by created_at desc, id limit :n", n=limit)
+    return [(Plan.model_validate({c: r[c] for c in _PLAN_COLUMNS}), r["created_at"]) for r in rows]
 
 
 def get_plan_by_token(token: str) -> Plan | None:

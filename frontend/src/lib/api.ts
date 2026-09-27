@@ -6,6 +6,7 @@ import type {
   CreatePlanRequest,
   Explanation,
   Plan,
+  PlanSummary,
   Resource,
   SuggestRequest,
   SuggestResponse,
@@ -66,6 +67,7 @@ export const api = {
   suggest: (body: SuggestRequest) => request<SuggestResponse>("/suggest", { method: "POST", body: JSON.stringify(body) }),
 
   createPlan: (body: CreatePlanRequest) => request<Plan>("/plans", { method: "POST", body: JSON.stringify(body) }),
+  listPlans: () => request<PlanSummary[]>("/plans"),
   getPlan: (id: string) => request<Plan>(`/plans/${id}`),
   updatePlan: (id: string, body: Partial<Pick<Plan, "budget" | "payment_choice" | "items" | "owner_email">>) =>
     request<Plan>(`/plans/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
