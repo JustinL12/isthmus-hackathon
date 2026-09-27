@@ -11,7 +11,7 @@ import { ChromaticLabel } from "@/components/ChromaticLabel";
 import { SetupStepper } from "@/components/setup/SetupStepper";
 import { SpeciesSearch } from "@/components/setup/SpeciesSearch";
 import { breedsFor } from "@/lib/breeds";
-import { MAX_WEIGHT_LBS, resetDraft, updateDraft, useHydrated, useSetupDraft } from "@/lib/setup-draft";
+import { MAX_AGE_YEARS, MAX_WEIGHT_LBS, resetDraft, updateDraft, useHydrated, useSetupDraft } from "@/lib/setup-draft";
 import { card, ctaWrapper, fieldLabel, input, inputBase, sectionLabel } from "@/lib/ui";
 import { PageSpinner } from "@/components/Spinner";
 
@@ -120,7 +120,7 @@ export default function PatientStep({
                 type="number"
                 inputMode="decimal"
                 min={0}
-                max={40}
+                max={MAX_AGE_YEARS}
                 step="any"
                 value={draft.age}
                 onChange={(e) => updateDraft({ age: e.target.value })}

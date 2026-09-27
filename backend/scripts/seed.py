@@ -4,7 +4,8 @@ Run from backend/:  python -m scripts.seed [--reset]
 Safe to re-run. Plans are never touched.
 
 Catalog items, explanations and symptoms are insert-only, so edits and additions made in
-the app survive a re-seed. --reset overwrites them with app/data/*.json.
+the app survive a re-seed. --reset overwrites them with app/data/*.json. Treatment details
+(steps, cost_includes, questions) are filled in only where an explanation has none yet.
 """
 
 import argparse
@@ -33,6 +34,24 @@ def upsert(conn, table: str, key: str, rows: list[dict], json_cols: set[str] = f
     conn.execute(sql, [{c: json.dumps(r[c]) if c in json_cols else r[c] for c in cols} for r in rows])
 
 
+def fill_missing_details(conn, explanations: list[dict]) -> None:
+    """Add treatment details to explanations that don't have them, keeping any the clinic wrote."""
+    rows = [
+        {"catalog_id": e["catalog_id"], "steps": e.get("steps"), "cost_includes": e.get("cost_includes"),
+         "questions": e.get("questions", [])}
+        for e in explanations
+    ]
+    conn.execute(
+        text(
+            "update explanations set steps = coalesce(steps, :steps), "
+            "cost_includes = coalesce(cost_includes, :cost_includes), "
+            "questions = case when cardinality(questions) = 0 then :questions else questions end "
+            "where catalog_id = :catalog_id"
+        ),
+        rows,
+    )
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--reset", action="store_true", help="overwrite catalog/explanation edits from app/data")
@@ -56,6 +75,7 @@ def main():
                 conn.exec_driver_sql(statement)
         upsert(conn, "catalog_items", "id", catalog, {"default_group"}, overwrite=reset)
         upsert(conn, "explanations", "catalog_id", explanations, overwrite=reset)
+        fill_missing_details(conn, explanations)
         upsert(conn, "symptoms", "id", symptoms, overwrite=reset)
         upsert(conn, "templates", "id", templates, {"groups"})
         upsert(conn, "resources", "id", resources)

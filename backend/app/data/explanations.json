@@ -2,166 +2,397 @@
   "exam": {
     "what": "The vet checks your pet from nose to tail.",
     "why": "Tells the vet how sick your pet is and what to check next.",
-    "if_postponed": "Needed for any treatment today."
+    "if_postponed": "Needed for any treatment today.",
+    "steps": "The vet looks at the eyes, ears, mouth and skin, listens to the heart and lungs, feels the belly and joints, and takes temperature and weight. It takes about 15–20 minutes, and you can stay with your pet.",
+    "cost_includes": "The vet's time for the hands-on exam and talking through what they found. Tests and treatments are listed separately.",
+    "questions": [
+      "What are you most worried about after the exam?",
+      "Which tests would change what we do today?",
+      "What signs at home mean I should call you?"
+    ]
   },
   "antiemetic-inj": {
     "what": "A shot that stops nausea and vomiting for about 24 hours.",
     "why": "Helps your pet keep food and water down and feel better fast.",
-    "if_postponed": "Vomiting may continue and dehydration can get worse."
+    "if_postponed": "Vomiting may continue and dehydration can get worse.",
+    "steps": "A small injection under the skin, usually at the back of the neck. It takes a few seconds and starts working within about an hour.",
+    "cost_includes": "The medicine and giving the injection.",
+    "questions": [
+      "When can I offer food and water again?",
+      "What should I do if vomiting starts again tonight?",
+      "Will my pet need anti-nausea pills at home?"
+    ]
   },
   "sq-fluids": {
     "what": "Fluids given under the skin to rehydrate.",
     "why": "Vomiting pets lose water quickly, especially older cats.",
-    "if_postponed": "Dehydration can make your pet weaker and harder to treat."
+    "if_postponed": "Dehydration can make your pet weaker and harder to treat.",
+    "steps": "A small needle goes under the loose skin between the shoulders and fluid flows in for a few minutes. It leaves a soft bump that is absorbed over several hours.",
+    "cost_includes": "The sterile fluids, the needle and line, and the technician's time.",
+    "questions": [
+      "How will I know if my pet is still dehydrated?",
+      "Could we give fluids at home if this helps?",
+      "When should my pet start drinking normally again?"
+    ]
   },
   "blood-panel": {
     "what": "Blood tests that check organs like the kidneys and liver, plus blood cells.",
     "why": "Finds common causes of vomiting in older cats, like kidney disease.",
-    "if_postponed": "The vet may miss an underlying problem that changes treatment."
+    "if_postponed": "The vet may miss an underlying problem that changes treatment.",
+    "steps": "A small blood sample is taken from a leg or the neck, which takes a couple of minutes. Many results come back the same day; some take 1–2 days from the lab.",
+    "cost_includes": "Drawing the blood, the lab tests for organ function and blood cell counts, and the vet reviewing the results with you.",
+    "questions": [
+      "When will the results be back, and how will you tell me?",
+      "Which results would change today's treatment?",
+      "Will we need to repeat this later?"
+    ]
   },
   "xrays-abd": {
     "what": "Pictures of the belly.",
     "why": "Looks for blockages or swallowed objects.",
-    "if_postponed": "Often fine to do at a recheck if vomiting improves. Come back sooner if it gets worse."
+    "if_postponed": "Often fine to do at a recheck if vomiting improves. Come back sooner if it gets worse.",
+    "steps": "Your pet lies on a padded table while 2–3 pictures of the belly are taken. It takes about 10–15 minutes and doesn't hurt. Some pets need a little sedation to lie still.",
+    "cost_includes": "Taking the pictures (usually two views) and the vet reading them. Sedation, if needed, is separate.",
+    "questions": [
+      "What are you looking for on these X-rays?",
+      "If they look normal, what's the next step?",
+      "Would a specialist also read them?"
+    ]
   },
   "xrays-chest": {
     "what": "Pictures of the chest.",
     "why": "Shows the lungs and heart, the usual causes of coughing or trouble breathing.",
-    "if_postponed": "If breathing is hard or getting worse, this usually can't wait. Ask your vet."
+    "if_postponed": "If breathing is hard or getting worse, this usually can't wait. Ask your vet.",
+    "steps": "Your pet lies on a padded table for 2–3 pictures of the chest. It takes about 10–15 minutes. Pets who are struggling to breathe are handled gently and quickly, and may get oxygen.",
+    "cost_includes": "Taking the pictures (usually two or three views) and the vet reading them.",
+    "questions": [
+      "What would the X-rays change about treatment?",
+      "Is my pet stable enough to go home today?",
+      "What breathing changes at home mean I should come back right away?"
+    ]
   },
   "urinalysis": {
     "what": "A test of a urine sample.",
     "why": "Adds detail to the blood panel on kidney health.",
-    "if_postponed": "Usually fine at a recheck within 1–2 weeks."
+    "if_postponed": "Usually fine at a recheck within 1–2 weeks.",
+    "steps": "The vet collects a small urine sample, often with a thin needle straight from the bladder, which is quick and cleaner than a catch at home. Results usually take less than a day.",
+    "cost_includes": "Collecting the sample and testing it for concentration, sugar, protein, blood, crystals and signs of infection.",
+    "questions": [
+      "Should I bring a sample from home instead?",
+      "Would a urine culture be needed too?",
+      "What do the results tell us that the blood panel doesn't?"
+    ]
   },
   "t4": {
     "what": "Measures thyroid hormone.",
     "why": "An overactive thyroid is common in older cats and can cause vomiting.",
-    "if_postponed": "Usually fine to check at the next visit."
+    "if_postponed": "Usually fine to check at the next visit.",
+    "steps": "A thyroid level is measured from a blood sample, often from the same draw as the blood panel, so there's no extra needle. Results usually take 1–2 days.",
+    "cost_includes": "The lab test and the vet reviewing the result.",
+    "questions": [
+      "If the thyroid is high, what are the treatment options?",
+      "Can this be run from today's blood sample?",
+      "How often should it be rechecked?"
+    ]
   },
   "rx-diet": {
     "what": "A gentle food that is easy on the stomach.",
     "why": "Can help the stomach settle for a few days.",
-    "if_postponed": "Your vet can suggest a bland diet at home instead."
+    "if_postponed": "Your vet can suggest a bland diet at home instead.",
+    "steps": "You take home a bag of a gentle, easy-to-digest food. Mix it in with the usual food over a few days, or feed it on its own if your vet says so.",
+    "cost_includes": "One bag of prescription food.",
+    "questions": [
+      "How long should my pet eat this food?",
+      "Can I make a bland diet at home instead?",
+      "What if my pet won't eat it?"
+    ]
   },
   "xrays-limb": {
     "what": "Pictures of the sore leg.",
     "why": "Shows breaks, joint problems, or bone changes the vet can't feel.",
-    "if_postponed": "Often fine if your pet improves on rest and pain meds. Come back if the limp gets worse."
+    "if_postponed": "Often fine if your pet improves on rest and pain meds. Come back if the limp gets worse.",
+    "steps": "Your pet lies on a padded table while pictures of the sore leg are taken from two angles, and sometimes of the other leg to compare. It takes about 15 minutes. Sore pets often need light sedation to hold still.",
+    "cost_includes": "Taking the pictures of the leg and the vet reading them. Sedation is listed separately.",
+    "questions": [
+      "What could the X-rays show that you can't feel?",
+      "If nothing is broken, what's the plan?",
+      "Would my pet need to see a specialist?"
+    ]
   },
   "nsaid": {
     "what": "A daily pill that eases pain and swelling.",
     "why": "Helps your pet stay comfortable while the injury heals.",
-    "if_postponed": "Your pet may stay sore and use the leg less. Never give human pain meds instead."
+    "if_postponed": "Your pet may stay sore and use the leg less. Never give human pain meds instead.",
+    "steps": "You give one pill a day with food for about two weeks. The vet shows you the dose and what to watch for.",
+    "cost_includes": "A two-week supply of anti-inflammatory pain medicine.",
+    "questions": [
+      "What side effects should I watch for?",
+      "Should I stop if my pet stops eating or has diarrhea?",
+      "How much rest does my pet need while on it?"
+    ]
   },
   "sedation": {
     "what": "Medicine that makes your pet calm and sleepy for a short time.",
     "why": "Lets the vet position a sore leg for clear X-rays without hurting your pet.",
-    "if_postponed": "Only needed if X-rays are done."
+    "if_postponed": "Only needed if X-rays are done.",
+    "steps": "An injection makes your pet calm and sleepy within about 10–15 minutes. The team watches breathing and heart rate the whole time, and most pets are awake and ready to go home within an hour or two.",
+    "cost_includes": "The sedative, any reversal medicine, and monitoring until your pet is awake.",
+    "questions": [
+      "Is sedation safe for my pet's age and health?",
+      "Does my pet need to skip breakfast first?",
+      "What should I expect when we get home?"
+    ]
   },
   "rabies": {
     "what": "A vaccine against rabies.",
     "why": "Required by law and protects your pet and your family.",
-    "if_postponed": "Your pet may be out of legal compliance. Check your local rules."
+    "if_postponed": "Your pet may be out of legal compliance. Check your local rules.",
+    "steps": "A quick injection under the skin. Your pet may be a little sleepy or sore at the spot for a day.",
+    "cost_includes": "The vaccine, giving it, and a rabies certificate and tag.",
+    "questions": [
+      "Is this the 1-year or 3-year vaccine?",
+      "When is the next one due?",
+      "What reactions mean I should call you?"
+    ]
   },
   "dhpp": {
     "what": "A combination vaccine against distemper, parvovirus and more.",
     "why": "These diseases are serious and spread easily between dogs.",
-    "if_postponed": "Avoid dog parks and boarding until it is given."
+    "if_postponed": "Avoid dog parks and boarding until it is given.",
+    "steps": "A quick injection under the skin. Puppies get a series of shots a few weeks apart; adult dogs get boosters on a schedule.",
+    "cost_includes": "The vaccine and giving it.",
+    "questions": [
+      "Is my dog due for a booster or starting a series?",
+      "When is it safe to visit dog parks or daycare?",
+      "What reactions are normal afterwards?"
+    ]
   },
   "fvrcp": {
     "what": "A combination vaccine against common cat viruses.",
     "why": "Protects against flu-like illness and a serious gut virus.",
-    "if_postponed": "Lower risk for indoor-only cats. Ask your vet about timing."
+    "if_postponed": "Lower risk for indoor-only cats. Ask your vet about timing.",
+    "steps": "A quick injection under the skin. Kittens get a series a few weeks apart; adult cats get boosters on a schedule.",
+    "cost_includes": "The vaccine and giving it.",
+    "questions": [
+      "Does my indoor cat still need this?",
+      "When is the next booster due?",
+      "What reactions are normal afterwards?"
+    ]
   },
   "heartworm-test": {
     "what": "A blood test for heartworm and some tick-borne diseases.",
     "why": "Heartworm is spread by mosquitoes and damages the heart and lungs.",
-    "if_postponed": "Needed before starting or renewing heartworm prevention."
+    "if_postponed": "Needed before starting or renewing heartworm prevention.",
+    "steps": "A few drops of blood are tested, and results are often ready within about 10 minutes during the visit.",
+    "cost_includes": "The blood draw and the test, which also checks for some tick-borne diseases.",
+    "questions": [
+      "Which heartworm prevention do you recommend?",
+      "What happens if the test is positive?",
+      "Does my dog need it year-round in Wisconsin?"
+    ]
   },
   "dental-cleaning": {
     "what": "A full cleaning of the teeth under anesthesia.",
     "why": "Removes tartar and treats gum disease that can cause pain.",
-    "if_postponed": "Usually fine to schedule for a later date."
+    "if_postponed": "Usually fine to schedule for a later date.",
+    "steps": "Your pet comes in for the day. Under anesthesia, the vet cleans above and below the gum line, polishes the teeth, and checks each tooth. Most pets go home the same afternoon.",
+    "cost_includes": "Anesthesia and monitoring, the cleaning and polishing, and a full mouth exam. Dental X-rays and extractions, if needed, cost extra.",
+    "questions": [
+      "Will my pet need tooth extractions, and what would they cost?",
+      "Are pre-anesthesia blood tests needed first?",
+      "How can I care for the teeth at home afterwards?"
+    ]
   },
   "fecal": {
     "what": "A lab check of a stool sample.",
     "why": "Looks for worms and other parasites that cause diarrhea.",
-    "if_postponed": "Your vet may treat for parasites without knowing which ones are there."
+    "if_postponed": "Your vet may treat for parasites without knowing which ones are there.",
+    "steps": "You bring a fresh stool sample (from the last 12 hours), or the vet collects one during the visit. The lab looks for worm eggs and other parasites. Results take a day or two.",
+    "cost_includes": "Testing the stool sample and the vet reviewing the result.",
+    "questions": [
+      "How fresh does the sample need to be?",
+      "Should my other pets be tested or treated too?",
+      "Could parasites spread to my family?"
+    ]
   },
   "ultrasound-abd": {
     "what": "A detailed, painless scan of the belly organs.",
     "why": "Shows problems X-rays can miss, like thickened intestines or masses.",
-    "if_postponed": "Often done later if first tests don't explain the problem."
+    "if_postponed": "Often done later if first tests don't explain the problem.",
+    "steps": "A small patch of fur on the belly is shaved and a probe with gel is moved over the skin to see the organs on a screen. It takes about 30–45 minutes and doesn't hurt; some pets get light sedation to lie still.",
+    "cost_includes": "The scan of the belly organs and the vet's written report.",
+    "questions": [
+      "What are you hoping the ultrasound will show?",
+      "Does my pet need to skip a meal first?",
+      "Would a specialist do or review the scan?"
+    ]
   },
   "cat-pain-meds": {
     "what": "A liquid pain medicine safe for cats.",
     "why": "Keeps your cat comfortable while it heals.",
-    "if_postponed": "Your cat may hide pain and eat less. Never give human pain meds."
+    "if_postponed": "Your cat may hide pain and eat less. Never give human pain meds.",
+    "steps": "A liquid you give by mouth with a syringe, once a day for about five days. The vet will show you how and how much.",
+    "cost_includes": "A five-day supply of cat-safe pain medicine.",
+    "questions": [
+      "How do I know if my cat is still in pain?",
+      "What side effects should I watch for?",
+      "What should I do if my cat won't take it?"
+    ]
   },
   "antibiotics": {
     "what": "Medicine that fights a bacterial infection.",
     "why": "Clears infections in skin, wounds, or the bladder.",
-    "if_postponed": "The infection may spread or get harder to treat."
+    "if_postponed": "The infection may spread or get harder to treat.",
+    "steps": "Pills or liquid given at home once or twice a day for about 10 days. Finish the whole course, even if your pet seems better sooner.",
+    "cost_includes": "A 10-day supply of antibiotics.",
+    "questions": [
+      "Should I give it with food?",
+      "What should I do if I miss a dose?",
+      "When should my pet start to look better?"
+    ]
   },
   "ear-cytology": {
     "what": "A swab of the ear looked at under a microscope.",
     "why": "Shows whether yeast, bacteria, or mites are causing the problem.",
-    "if_postponed": "The vet may pick an ear medicine without knowing the cause."
+    "if_postponed": "The vet may pick an ear medicine without knowing the cause.",
+    "steps": "The vet gently swabs the ear canal and looks at the sample under a microscope, usually during the visit.",
+    "cost_includes": "Taking the swab and the vet examining it.",
+    "questions": [
+      "What's causing the ear problem?",
+      "How do I clean the ears at home?",
+      "How can we stop this from coming back?"
+    ]
   },
   "ear-meds": {
     "what": "Drops or ointment for the ears.",
     "why": "Treats ear infections and eases itching.",
-    "if_postponed": "Ear infections can become painful and harder to clear."
+    "if_postponed": "Ear infections can become painful and harder to clear.",
+    "steps": "You put drops or ointment in the ear at home, usually once or twice a day for 1–2 weeks. Some clinics use a long-lasting gel instead that the vet puts in.",
+    "cost_includes": "The ear medicine for the full course.",
+    "questions": [
+      "How long do I use the medicine?",
+      "Should I clean the ears before each dose?",
+      "When should we recheck the ears?"
+    ]
   },
   "skin-cytology": {
     "what": "Tape pressed on the skin and looked at under a microscope.",
     "why": "Finds yeast or bacteria that make itching worse.",
-    "if_postponed": "The vet may treat the itch without knowing if there is an infection."
+    "if_postponed": "The vet may treat the itch without knowing if there is an infection.",
+    "steps": "Clear tape is pressed on the itchy skin, then stained and looked at under a microscope during the visit. It takes a few minutes and doesn't hurt.",
+    "cost_includes": "Collecting the samples and the vet examining them.",
+    "questions": [
+      "Is there an infection making the itch worse?",
+      "Could allergies be the cause?",
+      "What should we do if it keeps coming back?"
+    ]
   },
   "itch-meds": {
     "what": "A pill or shot that calms itching.",
     "why": "Stops the scratching that damages skin and keeps your pet awake.",
-    "if_postponed": "Scratching can cause sores and skin infections."
+    "if_postponed": "Scratching can cause sores and skin infections.",
+    "steps": "Either an injection in the clinic that works for several weeks, or a daily pill you give at home. Most pets feel relief within a day.",
+    "cost_includes": "The anti-itch medicine for this visit's course.",
+    "questions": [
+      "How long will the relief last?",
+      "Are there side effects to watch for?",
+      "What is the long-term plan if itching returns?"
+    ]
   },
   "flea-prevention": {
     "what": "A monthly chew or topical that kills fleas and ticks.",
     "why": "Fleas are a common cause of itching and can spread tapeworms.",
-    "if_postponed": "Fine to start soon, but itching may continue if fleas are the cause."
+    "if_postponed": "Fine to start soon, but itching may continue if fleas are the cause.",
+    "steps": "A monthly chew or a liquid applied to the skin at home. The first dose can be given today.",
+    "cost_includes": "A three-month supply of flea and tick prevention.",
+    "questions": [
+      "Do all my pets need to be treated?",
+      "Should my pet be on this year-round?",
+      "How do I get rid of fleas in my home?"
+    ]
   },
   "fiv-felv": {
     "what": "A blood test for two common cat viruses.",
     "why": "These viruses weaken the immune system and spread to other cats.",
-    "if_postponed": "Keep your cat away from other cats until tested."
+    "if_postponed": "Keep your cat away from other cats until tested.",
+    "steps": "A few drops of blood are tested, and results are often ready within about 10 minutes during the visit.",
+    "cost_includes": "The blood draw and the combination test for both viruses.",
+    "questions": [
+      "What happens if the test is positive?",
+      "Should my other cats be tested?",
+      "Is a retest needed later for a kitten or new cat?"
+    ]
   },
   "blood-pressure": {
     "what": "A painless cuff check of blood pressure.",
     "why": "High blood pressure is common in older cats with kidney or thyroid disease.",
-    "if_postponed": "Usually fine to check at a recheck."
+    "if_postponed": "Usually fine to check at a recheck.",
+    "steps": "A small cuff goes around a leg or the tail and a few readings are taken, just like a person's blood pressure check. It takes about 10 minutes in a quiet room.",
+    "cost_includes": "Several readings and the vet reviewing them.",
+    "questions": [
+      "What reading would need treatment?",
+      "Could stress at the clinic affect the reading?",
+      "How often should it be rechecked?"
+    ]
   },
   "eye-stain": {
     "what": "A drop of dye that shows scratches on the eye.",
     "why": "A scratched eye needs different medicine than an infection.",
-    "if_postponed": "The wrong eye medicine can make a scratch worse."
+    "if_postponed": "The wrong eye medicine can make a scratch worse.",
+    "steps": "A drop of orange dye goes in the eye and the vet looks with a blue light. Any scratch glows green. It takes a few minutes and doesn't hurt.",
+    "cost_includes": "The dye strip and the eye exam with the stain.",
+    "questions": [
+      "Is the eye scratched or infected?",
+      "Which eye drops are safe to use?",
+      "When should we recheck the eye?"
+    ]
   },
   "eye-meds": {
     "what": "Drops or ointment for the eye.",
     "why": "Treats infection or helps a scratch heal.",
-    "if_postponed": "Eye problems can get worse quickly. Come back if squinting increases."
+    "if_postponed": "Eye problems can get worse quickly. Come back if squinting increases.",
+    "steps": "You put drops or ointment in the eye at home, usually a few times a day for about a week. Your pet may need a cone to stop rubbing.",
+    "cost_includes": "The eye medicine for the full course.",
+    "questions": [
+      "How many times a day, and for how long?",
+      "Does my pet need a cone?",
+      "What changes mean I should come back sooner?"
+    ]
   },
   "hospitalization": {
     "what": "A day in the hospital with IV fluids and close monitoring.",
     "why": "For pets too sick or dehydrated to go home safely.",
-    "if_postponed": "Ask your vet what signs mean you should come back right away."
+    "if_postponed": "Ask your vet what signs mean you should come back right away.",
+    "steps": "Your pet stays at the clinic with an IV line for fluids and medicine. The team checks on them through the day and calls you with updates. Most pets stay one day and night.",
+    "cost_includes": "One day of care: the kennel, IV fluids and supplies, nursing checks and monitoring. Extra tests or medicines are billed separately.",
+    "questions": [
+      "What needs to happen before my pet can come home?",
+      "When will you call me with updates?",
+      "Can I visit?"
+    ]
   },
   "bordetella": {
     "what": "A vaccine against kennel cough.",
     "why": "Often required for boarding, daycare, and grooming.",
-    "if_postponed": "Fine to skip if your dog doesn't board or go to daycare."
+    "if_postponed": "Fine to skip if your dog doesn't board or go to daycare.",
+    "steps": "Usually drops in the nose or mouth, sometimes an injection. It takes seconds and protects for about a year.",
+    "cost_includes": "The vaccine and giving it.",
+    "questions": [
+      "Does my dog need this if they don't board or go to daycare?",
+      "How soon before boarding should it be given?",
+      "What reactions are normal?"
+    ]
   },
   "microchip": {
     "what": "A tiny ID chip placed under the skin.",
     "why": "Helps shelters return your pet if it gets lost.",
-    "if_postponed": "Can be done at any future visit."
+    "if_postponed": "Can be done at any future visit.",
+    "steps": "A chip the size of a grain of rice goes under the skin between the shoulders with a needle, much like a vaccine. It takes seconds and lasts for life.",
+    "cost_includes": "The chip, placing it, and registering it with your contact details.",
+    "questions": [
+      "How do I keep my contact details up to date?",
+      "Can the chip be checked at future visits?",
+      "Does it work with lost-pet databases nationwide?"
+    ]
   }
 }

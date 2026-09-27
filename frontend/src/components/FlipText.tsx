@@ -17,12 +17,15 @@ export function FlipText({
   text,
   className,
   duration = 450,
+  spread = 0.9,
   instant = false,
 }: {
   text: string;
   className?: string;
   /** Duration of each character flip in milliseconds. */
   duration?: number;
+  /** Longest the letter-by-letter stagger may take, in seconds (long sentences get a tighter stagger). */
+  spread?: number;
   /** Swap without flipping (and without the old text briefly taking up space). */
   instant?: boolean;
 }) {
@@ -42,8 +45,8 @@ export function FlipText({
       const outgoing = gsap.utils.toArray<HTMLElement>('[data-flip="previous"]');
       const incoming = gsap.utils.toArray<HTMLElement>('[data-flip="current"]');
       const each = reduceMotion ? 0 : duration / 1000;
-      // Same feel as the swap component, but capped so long sentences still finish in ~1.5s.
-      const stagger = reduceMotion ? 0 : Math.min(0.044, 0.9 / Math.max(incoming.length, 1));
+      // Same feel as the swap component, but capped so long sentences still finish quickly.
+      const stagger = reduceMotion ? 0 : Math.min(0.044, spread / Math.max(incoming.length, 1));
 
       gsap.set(incoming, { rotationX: -82, opacity: 0, transformOrigin: "center bottom" });
       gsap
@@ -59,7 +62,7 @@ export function FlipText({
         .to(incoming, { rotationX: 0, opacity: 1, duration: each, stagger, ease: "power2.out" }, `<${each * 0.62}`);
     }, container);
     return () => context.revert();
-  }, [layers, duration]);
+  }, [layers, duration, spread]);
 
   const renderLayer = (value: string, layer: "current" | "previous") => (
     <span aria-hidden className="col-start-1 row-start-1 [perspective:800px]">

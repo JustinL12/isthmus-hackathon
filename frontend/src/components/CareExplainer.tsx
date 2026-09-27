@@ -23,13 +23,15 @@ const DEFINITIONS: Record<Group, (pet: string) => string> = {
 
 const DOT: Record<Group, string> = { essential: "bg-essential", soon: "bg-soon", optional: "bg-optional" };
 
-// Readable reveal: rows start once the heading flip is mostly done.
-const ROWS_START_S = 0.9;
-const ROW_GAP_S = 0.95;
-const DEFINITION_LAG_S = 0.5;
+// Brisk reveal: the heading flip finishes in ~0.7s, then the rows follow close behind.
+const FLIP_MS = 250; // each letter's flip
+const FLIP_SPREAD_S = 0.45; // letter-by-letter stagger, at most
+const ROWS_START_S = 0.45;
+const ROW_GAP_S = 0.45;
+const DEFINITION_LAG_S = 0.25;
 const EASE_OUT: Transition["ease"] = [0.22, 1, 0.36, 1];
-const BOX_RISE = { y: 28, duration: 0.8 };
-const ROW_RISE = { y: 44, duration: 0.9 }; // group rows drift in slower than boxes, to read along
+const BOX_RISE = { y: 28, duration: 0.45 };
+const ROW_RISE = { y: 36, duration: 0.5 }; // group rows drift in a little slower than boxes, to read along
 
 export function CareExplainer({
   petName,
@@ -68,13 +70,13 @@ export function CareExplainer({
     <section aria-label={`How ${petName}'s estimate is organized`} className="space-y-4">
       <motion.div
         {...rise(0.15)}
-        className={`rounded-2xl border p-6 shadow-[0_16px_50px_-24px_rgba(20,17,10,0.25)] transition-colors duration-700 sm:p-7 ${
+        className={`rounded-2xl border p-6 shadow-[0_16px_50px_-24px_rgba(20,17,10,0.25)] transition-colors duration-300 sm:p-7 ${
           red ? "border-badger bg-badger text-white" : "border-line bg-white text-ink"
         }`}
       >
         <SmoothHeight reduceMotion={reduceMotion}>
           <h2 className="text-2xl font-extrabold tracking-[-0.02em] sm:text-3xl">
-            <FlipText text={title} />
+            <FlipText text={title} duration={FLIP_MS} spread={FLIP_SPREAD_S} />
           </h2>
         </SmoothHeight>
 
@@ -94,14 +96,14 @@ export function CareExplainer({
               </button>
               <button
                 onClick={onShowPlan}
-                className={`text-sm underline-offset-4 transition-colors duration-700 hover:underline ${
+                className={`text-sm underline-offset-4 transition-colors duration-300 hover:underline ${
                   red ? "text-white/80 hover:text-white" : "text-muted hover:text-ink"
                 }`}
               >
                 Skip to full plan
               </button>
               <span
-                className={`ml-auto text-sm tabular-nums transition-colors duration-700 ${red ? "text-white/75" : "text-muted"}`}
+                className={`ml-auto text-sm tabular-nums transition-colors duration-300 ${red ? "text-white/75" : "text-muted"}`}
                 aria-label={`Step ${stage + 1} of ${LAST_STAGE + 1}`}
               >
                 {stage + 1} / {LAST_STAGE + 1}
@@ -176,7 +178,7 @@ function SmoothHeight({ reduceMotion, children }: { reduceMotion: boolean; child
     <motion.div
       initial={false}
       animate={{ height }}
-      transition={reduceMotion ? { duration: 0 } : { duration: 0.6, ease: EASE_OUT }}
+      transition={reduceMotion ? { duration: 0 } : { duration: 0.35, ease: EASE_OUT }}
       className="overflow-hidden"
     >
       <div ref={content}>{children}</div>

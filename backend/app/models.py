@@ -1,7 +1,7 @@
 """Pydantic models. These mirror frontend/src/lib/types.ts — keep them in sync."""
 
 from datetime import date, datetime
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
 
@@ -18,6 +18,10 @@ class Explanation(BaseModel):
     what: str  # plain-language description
     why: str  # why it matters
     if_postponed: str
+    # Fuller details for the item's details dialog (optional; shown when present).
+    steps: str | None = None  # what happens, step by step, and how long it takes
+    cost_includes: str | None = None  # what the price covers
+    questions: list[str] = []  # questions the owner might ask the vet
 
 
 class CatalogItem(BaseModel):
@@ -43,6 +47,9 @@ class ExplanationIn(BaseModel):
     what: str = NonBlank
     why: str = NonBlank
     if_postponed: str = NonBlank
+    steps: str | None = Field(None, max_length=400)
+    cost_includes: str | None = Field(None, max_length=400)
+    questions: list[Annotated[str, Field(min_length=1, max_length=200)]] = Field([], max_length=5)
 
 
 class CatalogItemCreate(BaseModel):
@@ -114,13 +121,14 @@ class Resource(BaseModel):
 
 
 Breed = Field(None, max_length=60)
+AgeYears = Field(None, ge=0, le=150)  # long-lived pets (tortoises, parrots) can pass 100
 WeightLbs = Field(None, gt=0, le=300)
 
 
 class Pet(BaseModel):
     name: str
     species: Species
-    age_years: float | None = None
+    age_years: float | None = AgeYears
     breed: str | None = Breed  # free text; the setup form suggests common breeds
     weight_lbs: float | None = WeightLbs
     reason: str = ""
@@ -205,7 +213,7 @@ class UpdatePlanRequest(BaseModel):
 
 class SuggestRequest(BaseModel):
     species: Species
-    age_years: float | None = None
+    age_years: float | None = AgeYears
     breed: str | None = Breed
     weight_lbs: float | None = WeightLbs
     symptoms: list[str]

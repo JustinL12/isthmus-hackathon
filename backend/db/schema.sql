@@ -82,5 +82,10 @@ alter table templates add column if not exists summary text;
 alter table templates add column if not exists active boolean not null default true;
 alter table templates add column if not exists created_at timestamptz not null default now();
 
+-- Fuller treatment details for the item details dialog (the clinic can edit them).
+alter table explanations add column if not exists steps text;
+alter table explanations add column if not exists cost_includes text;
+alter table explanations add column if not exists questions text[] not null default '{}';
+
 -- What the vet started from: a template id, 'ai' or 'blank'.
 alter table plans add column if not exists template_id text;

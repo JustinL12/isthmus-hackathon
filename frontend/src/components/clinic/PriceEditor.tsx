@@ -12,13 +12,65 @@ import { card, ctaWrapper, fieldLabel, input, inputBase, quietLink, secondaryBut
 
 export const MAX_PRICE = 100_000;
 
-const EXPLANATION_FIELDS: { key: keyof Explanation; label: string; hint: string }[] = [
+// The explanation as form text: questions are one per line.
+type ExplanationForm = Record<"what" | "why" | "if_postponed" | "steps" | "cost_includes" | "questions", string>;
+type FieldSpec = { key: keyof ExplanationForm; label: string; hint: string };
+
+// Required once any explanation is given (shown on item cards and the take-home summary).
+const EXPLANATION_FIELDS: FieldSpec[] = [
   { key: "what", label: "What it is", hint: "In plain words, e.g. “A blood test that checks the kidneys, liver and blood cells.”" },
   { key: "why", label: "Why it matters", hint: "What it tells the vet or how it helps." },
   { key: "if_postponed", label: "If it's postponed", hint: "What could happen if the owner waits." },
 ];
 
-const BLANK: Explanation = { what: "", why: "", if_postponed: "" };
+// Optional extras for the details an owner opens on the shared screen.
+const DETAIL_FIELDS: FieldSpec[] = [
+  { key: "steps", label: "What happens", hint: "Step by step, and how long it takes." },
+  { key: "cost_includes", label: "What the price covers", hint: "E.g. “The vaccine, giving it, and a rabies certificate.”" },
+  { key: "questions", label: "Questions to ask your vet", hint: "One per line, up to 5." },
+];
+
+const MAX_QUESTIONS = 5;
+
+function toForm(e: Explanation | null): ExplanationForm {
+  return {
+    what: e?.what ?? "",
+    why: e?.why ?? "",
+    if_postponed: e?.if_postponed ?? "",
+    steps: e?.steps ?? "",
+    cost_includes: e?.cost_includes ?? "",
+    questions: (e?.questions ?? []).join("\n"),
+  };
+}
+
+const questionList = (text: string) =>
+  text
+    .split("\n")
+    .map((q) => q.trim())
+    .filter(Boolean);
+
+function fromForm(f: ExplanationForm): Explanation {
+  return {
+    what: f.what.trim(),
+    why: f.why.trim(),
+    if_postponed: f.if_postponed.trim(),
+    steps: f.steps.trim() || null,
+    cost_includes: f.cost_includes.trim() || null,
+    questions: questionList(f.questions),
+  };
+}
+
+const sameExplanation = (a: Explanation, b: Explanation | null) =>
+  b != null &&
+  a.what === b.what &&
+  a.why === b.why &&
+  a.if_postponed === b.if_postponed &&
+  a.steps === (b.steps ?? null) &&
+  a.cost_includes === (b.cost_includes ?? null) &&
+  a.questions?.join("\n") === (b.questions ?? []).join("\n");
+
+const textarea =
+  "mt-1 min-h-20 w-full rounded-xl border border-line bg-white px-3 py-2 text-ink outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20";
 
 export function PriceEditor({
   item,
@@ -37,7 +89,7 @@ export function PriceEditor({
   const [name, setName] = useState(item?.name ?? "");
   const [code, setCode] = useState(item?.code ?? "");
   const [price, setPrice] = useState(item ? String(item.price) : "");
-  const [why, setWhy] = useState<Explanation>(explanation ?? BLANK);
+  const [why, setWhy] = useState<ExplanationForm>(() => toForm(explanation));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nameTaken, setNameTaken] = useState(false);
@@ -46,17 +98,19 @@ export function PriceEditor({
   const priceNumber = Number(price);
   const priceValid = price.trim() !== "" && Number.isFinite(priceNumber) && priceNumber >= 0 && priceNumber <= MAX_PRICE;
   const filled = EXPLANATION_FIELDS.filter((f) => why[f.key].trim() !== "").length;
-  // The explanation is all three lines or none (the backend needs all three).
-  const explanationValid = filled === 0 ? explanation == null : filled === EXPLANATION_FIELDS.length;
-  const explanationChanged = EXPLANATION_FIELDS.some((f) => why[f.key].trim() !== (explanation?.[f.key] ?? "").trim());
+  const anyDetails = DETAIL_FIELDS.some((f) => why[f.key].trim() !== "");
+  const tooManyQuestions = questionList(why.questions).length > MAX_QUESTIONS;
+  // The explanation is all three main lines or none (the backend needs all three); details need them too.
+  const explanationValid =
+    !tooManyQuestions &&
+    (filled === 0 ? explanation == null && !anyDetails : filled === EXPLANATION_FIELDS.length);
+  const edited = fromForm(why);
+  const explanationChanged = filled > 0 && !sameExplanation(edited, explanation);
   const changes = {
     name: name.trim() !== (item?.name ?? "") ? name.trim() : undefined,
     code: code.trim() !== (item?.code ?? "") ? code.trim() : undefined,
     price: priceValid && priceNumber !== item?.price ? priceNumber : undefined,
-    explanation:
-      explanationChanged && filled === EXPLANATION_FIELDS.length
-        ? { what: why.what.trim(), why: why.why.trim(), if_postponed: why.if_postponed.trim() }
-        : undefined,
+    explanation: explanationChanged && filled === EXPLANATION_FIELDS.length ? edited : undefined,
   };
   const dirty = Object.values(changes).some((v) => v !== undefined);
   const valid = name.trim() !== "" && priceValid && explanationValid;
@@ -167,13 +221,37 @@ export function PriceEditor({
             <label key={f.key} className={fieldLabel}>
               {f.label}
               <textarea
-                className="mt-1 min-h-20 w-full rounded-xl border border-line bg-white px-3 py-2 text-ink outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
+                className={textarea}
                 maxLength={400}
                 value={why[f.key]}
-                required={filled > 0 || explanation != null}
+                required={filled > 0 || anyDetails || explanation != null}
                 onChange={(e) => setWhy({ ...why, [f.key]: e.target.value })}
               />
               <span className="mt-1 block text-xs font-normal text-muted">{f.hint}</span>
+            </label>
+          ))}
+        </div>
+
+        <div className="space-y-3 border-t border-line pt-4">
+          <div>
+            <h3 className={sectionLabel}>
+              Treatment details <span className="font-normal normal-case tracking-normal">(optional)</span>
+            </h3>
+            <p className="mt-1 text-sm text-muted">Shown when an owner opens the item for more detail.</p>
+          </div>
+          {DETAIL_FIELDS.map((f) => (
+            <label key={f.key} className={fieldLabel}>
+              {f.label}
+              <textarea
+                className={textarea}
+                maxLength={f.key === "questions" ? MAX_QUESTIONS * 200 : 400}
+                value={why[f.key]}
+                aria-invalid={(f.key === "questions" && tooManyQuestions) || undefined}
+                onChange={(e) => setWhy({ ...why, [f.key]: e.target.value })}
+              />
+              <span className={`mt-1 block text-xs font-normal ${f.key === "questions" && tooManyQuestions ? "text-bad" : "text-muted"}`}>
+                {f.hint}
+              </span>
             </label>
           ))}
         </div>

@@ -84,3 +84,17 @@ def test_restore_blocked_if_name_reused(client):
     client.delete("/api/catalog/t4")
     client.post("/api/catalog", json={"name": "Thyroid test", "price": 80})
     assert client.patch("/api/catalog/t4", json={"active": True}).status_code == 409
+
+
+def test_treatment_details_seeded_and_editable(client):
+    exam = client.get("/api/explanations").json()["exam"]
+    assert exam["steps"] and exam["cost_includes"] and 2 <= len(exam["questions"]) <= 3
+
+    details = {**EXPLANATION, "steps": "A 20 minute scan.", "cost_includes": "The scan and report.", "questions": ["Is it safe?"]}
+    assert client.patch("/api/catalog/t4", json={"explanation": details}).status_code == 200
+    plan = client.post("/api/plans", json={**MOCHI, "template_id": "vomiting-senior-cat"}).json()
+    t4 = next(i for i in plan["items"] if i["catalog_id"] == "t4")["explanation"]
+    assert (t4["steps"], t4["cost_includes"], t4["questions"]) == ("A 20 minute scan.", "The scan and report.", ["Is it safe?"])
+
+    too_many = {**details, "questions": ["q"] * 6}
+    assert client.patch("/api/catalog/t4", json={"explanation": too_many}).status_code == 422

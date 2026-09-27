@@ -1,27 +1,63 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { type ReactNode, useEffect, useRef } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { api } from "@/lib/api";
 import { money } from "@/lib/plan-math";
-import type { PlanItem } from "@/lib/types";
+import type { Explanation, PlanItem } from "@/lib/types";
 
-// Expanded view of one estimate item. Template only for now: each section shows a
-// placeholder until real content is passed in through `details`.
-//
-// TODO(item details): pass content per section, e.g.
-//   <ItemDetailsDialog details={{ procedure: <p>…</p>, cost: <CostTable … /> }} … />
-// Any section left out keeps its placeholder, so they can be filled in one at a time.
+// Expanded view of one estimate item: what happens, why it matters, what waiting means, what
+// the price covers, and questions to ask. Content comes from the clinic's explanation library
+// (edited on /clinic). A plan keeps the explanation it was built with; details it doesn't have
+// (plans built before they existed) are filled from the library.
 
 export type ItemDetailSection = "procedure" | "why" | "postpone" | "cost" | "questions";
 
-export const ITEM_DETAIL_SECTIONS: { id: ItemDetailSection; title: (pet: string) => string; hint: string }[] = [
-  { id: "procedure", title: () => "What happens", hint: "What the vet does, step by step, and how long it takes" },
-  { id: "why", title: (pet) => `Why it matters for ${pet}`, hint: "How this helps find or treat the problem" },
-  { id: "postpone", title: () => "If you wait", hint: "What could change if it's postponed, and signs to watch for" },
-  { id: "cost", title: () => "Cost breakdown", hint: "What the price includes" },
-  { id: "questions", title: () => "Questions to ask your vet", hint: "Prompts to bring up together" },
+export const ITEM_DETAIL_SECTIONS: { id: ItemDetailSection; title: (pet: string) => string }[] = [
+  { id: "procedure", title: () => "What happens" },
+  { id: "why", title: (pet) => `Why it matters for ${pet}` },
+  { id: "postpone", title: () => "If you wait" },
+  { id: "cost", title: () => "What the price covers" },
+  { id: "questions", title: () => "Questions to ask your vet" },
 ];
+
+// The clinic's library, fetched once per page load (only needed for older plans).
+let library: Promise<Record<string, Explanation>> | null = null;
+const loadLibrary = () => (library ??= api.explanations().catch((): Record<string, Explanation> => ({})));
+
+function useExplanation(item: PlanItem): Explanation | null {
+  const own = item.explanation ?? null;
+  const complete = own != null && own.steps != null && own.cost_includes != null && (own.questions?.length ?? 0) > 0;
+  const [fromLibrary, setFromLibrary] = useState<Explanation | null>(null);
+  useEffect(() => {
+    if (complete) return;
+    let cancelled = false;
+    void loadLibrary().then((all) => {
+      if (!cancelled) setFromLibrary(all[item.catalog_id] ?? null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [complete, item.catalog_id]);
+  if (!own) return fromLibrary;
+  return {
+    ...own,
+    steps: own.steps ?? fromLibrary?.steps,
+    cost_includes: own.cost_includes ?? fromLibrary?.cost_includes,
+    questions: own.questions?.length ? own.questions : (fromLibrary?.questions ?? []),
+  };
+}
+
+function Paragraphs({ lines }: { lines: (string | null | undefined)[] }) {
+  return (
+    <div className="mt-2 space-y-2 text-ink/85">
+      {lines.filter(Boolean).map((line) => (
+        <p key={line}>{line}</p>
+      ))}
+    </div>
+  );
+}
 
 export function ItemDetailsDialog({
   item,
@@ -29,7 +65,6 @@ export function ItemDetailsDialog({
   groupLabel,
   toneClassName,
   originY,
-  details = {},
   onClose,
 }: {
   item: PlanItem;
@@ -39,10 +74,36 @@ export function ItemDetailsDialog({
   toneClassName: string;
   /** Vertical center of the card that opened this, so the panel grows out from it. */
   originY: number;
-  details?: Partial<Record<ItemDetailSection, ReactNode>>;
   onClose: () => void;
 }) {
   const closeButton = useRef<HTMLButtonElement>(null);
+  const explanation = useExplanation(item);
+  const ask = "Ask your vet about this.";
+  const content: Record<ItemDetailSection, ReactNode> = {
+    procedure: <Paragraphs lines={explanation ? [explanation.what, explanation.steps] : [ask]} />,
+    why: <Paragraphs lines={[explanation?.why ?? ask]} />,
+    postpone: <Paragraphs lines={[explanation?.if_postponed ?? "Ask your vet whether this can safely wait."]} />,
+    cost: (
+      <div className="mt-2 text-ink/85">
+        <p className="font-serif text-2xl text-ink tabular-nums">{money(item.price)}</p>
+        <p className="mt-1">{explanation?.cost_includes ?? "Ask your vet what this price includes."}</p>
+      </div>
+    ),
+    questions: explanation?.questions?.length ? (
+      <ul className="mt-2 space-y-1.5 text-ink/85">
+        {explanation.questions.map((q) => (
+          <li key={q} className="flex gap-2">
+            <span aria-hidden className="text-badger">
+              ?
+            </span>
+            {q}
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <Paragraphs lines={["Is this needed today, or can it wait?", "Is there a lower-cost option?"]} />
+    ),
+  };
   const titleId = `item-details-${item.id}`;
 
   // Focus inside while open, Escape closes, the page behind doesn't scroll, and focus
@@ -113,12 +174,7 @@ export function ItemDetailsDialog({
                 aria-label={section.title(petName)}
               >
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">{section.title(petName)}</h3>
-                {details[section.id] ?? (
-                  <div className="mt-2 rounded-xl border border-dashed border-line bg-cream/60 px-4 py-5">
-                    <p className="text-sm text-muted">{section.hint}</p>
-                    <p className="mt-1 text-xs text-muted/80 italic">Details coming soon</p>
-                  </div>
-                )}
+                {content[section.id]}
               </section>
             ))}
           </div>

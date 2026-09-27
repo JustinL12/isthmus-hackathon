@@ -138,13 +138,15 @@ const validNumber = (s: string, min: number, max: number) => {
   return Number.isFinite(n) && n >= min && n <= max;
 };
 
+// Long-lived pets (tortoises, parrots) can pass 100 years.
+export const MAX_AGE_YEARS = 150;
 export const MAX_WEIGHT_LBS = 300;
 
-/** Same rules as the step 1 form: names required (not just spaces), age 0–40, weight 0–300 lbs, budget ≥ 0. */
+/** Same rules as the step 1 form: names required (not just spaces), age 0–150, weight 0–300 lbs, budget ≥ 0. */
 export const isPatientComplete = (d: SetupDraft) =>
   d.petName.trim() !== "" &&
   d.ownerName.trim() !== "" &&
-  validNumber(d.age, 0, 40) &&
+  validNumber(d.age, 0, MAX_AGE_YEARS) &&
   validNumber(d.weight, 0.1, MAX_WEIGHT_LBS) &&
   validNumber(d.budget, 0, Number.POSITIVE_INFINITY);
 

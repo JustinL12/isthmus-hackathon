@@ -168,9 +168,11 @@ def save_catalog_item(item: CatalogItem, explanation: Explanation | None) -> Cat
             if explanation:
                 conn.execute(
                     text(
-                        "insert into explanations (catalog_id, what, why, if_postponed) "
-                        "values (:id, :what, :why, :if_postponed) on conflict (catalog_id) do update set "
-                        "what = excluded.what, why = excluded.why, if_postponed = excluded.if_postponed"
+                        "insert into explanations (catalog_id, what, why, if_postponed, steps, cost_includes, questions) "
+                        "values (:id, :what, :why, :if_postponed, :steps, :cost_includes, :questions) "
+                        "on conflict (catalog_id) do update set what = excluded.what, why = excluded.why, "
+                        "if_postponed = excluded.if_postponed, steps = excluded.steps, "
+                        "cost_includes = excluded.cost_includes, questions = excluded.questions"
                     ),
                     {"id": item.id, **explanation.model_dump()},
                 )

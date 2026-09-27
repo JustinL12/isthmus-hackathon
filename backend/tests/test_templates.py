@@ -78,6 +78,11 @@ def test_pet_profile_round_trips(client):
     assert (plan["pet"]["breed"], plan["pet"]["weight_lbs"]) == ("Siamese", 9.5)
     bad = client.post("/api/plans", json={**MOCHI, "pet": {**pet, "weight_lbs": -1}, "template_id": "vomiting-senior-cat"})
     assert bad.status_code == 422
+    # Long-lived pets: ages up to 150 are fine, past that is a typo.
+    tortoise = client.post("/api/plans", json={**MOCHI, "pet": {**pet, "age_years": 120}, "template_id": "vomiting-senior-cat"})
+    assert tortoise.status_code == 200
+    too_old = client.post("/api/plans", json={**MOCHI, "pet": {**pet, "age_years": 151}, "template_id": "vomiting-senior-cat"})
+    assert too_old.status_code == 422
 
 
 def ai_template(**kw) -> Template:

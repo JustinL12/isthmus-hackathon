@@ -16,6 +16,10 @@ export interface Explanation {
   what: string;
   why: string;
   if_postponed: string;
+  // Fuller details for the item details dialog (optional; the clinic can edit them).
+  steps?: string | null; // what happens, step by step, and how long it takes
+  cost_includes?: string | null; // what the price covers
+  questions?: string[]; // questions the owner might ask the vet
 }
 
 export interface CatalogItem {
