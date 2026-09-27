@@ -39,8 +39,16 @@ def _get_or_404(item_id: str) -> CatalogItem:
 
 @router.get("", response_model=list[CatalogItem])
 def list_catalog(include_inactive: bool = False):
-    """Active items; `?include_inactive=true` also returns removed ones (for the clinic's list)."""
-    return list((store.all_catalog() if include_inactive else store.catalog()).values())
+    """Active items; `?include_inactive=true` also returns removed ones (for the clinic's list).
+    `default_group` includes the groups of AI-made templates, which keep them on the template."""
+    items = list((store.all_catalog() if include_inactive else store.catalog()).values())
+    grouped = [t for t in store.templates().values() if t.groups]
+    if not grouped:
+        return items
+    return [
+        i.model_copy(update={"default_group": {**i.default_group, **{t.id: t.groups[i.id] for t in grouped if i.id in t.groups}}})
+        for i in items
+    ]
 
 
 @router.post("", response_model=CatalogItemDetail, status_code=201)

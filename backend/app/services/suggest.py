@@ -11,7 +11,7 @@ import logging
 
 from .. import store
 from ..models import ItemChoice, SuggestedItem, SuggestRequest, SuggestResponse
-from . import claude, databricks
+from . import claude, databricks, templates
 
 log = logging.getLogger(__name__)
 
@@ -39,29 +39,37 @@ def from_frequencies(similar: databricks.SimilarCases) -> list[ItemChoice]:
     ]
 
 
-def best_template(species: str, symptoms: list[str]):
-    """Template for this species with the most symptom overlap, or None if nothing overlaps."""
-    wanted = set(symptoms)
-    scored = [(len(wanted & set(t.symptoms)), t) for t in store.templates().values() if t.species == species]
-    score, template = max(scored, key=lambda x: x[0], default=(0, None))
-    return template if score > 0 else None
+def best_template(req: SuggestRequest):
+    """Best-ranked template for this patient that shares a symptom, or None."""
+    wanted = set(req.symptoms)
+    all_templates = store.templates()
+    for r in templates.rank(req):
+        if wanted & set(all_templates[r.template_id].symptoms):
+            return all_templates[r.template_id]
+    return None
 
 
 def from_template(req: SuggestRequest) -> SuggestResponse:
-    template = best_template(req.species, req.symptoms)
+    template = best_template(req)
     if not template:
         return SuggestResponse(items=[], source="none")
     catalog = store.catalog()
     items = [
-        ItemChoice(catalog_id=cid, group=catalog[cid].default_group.get(template.id, "soon"), reason=f"From the '{template.name}' template.")
+        ItemChoice(catalog_id=cid, group=template.group_for(catalog[cid]), reason=f"From the '{template.name}' template.")
         for cid in template.item_ids
     ]
     return SuggestResponse(items=_priced(items), source="template", fallback_template_id=template.id)
 
 
-async def suggest(req: SuggestRequest) -> SuggestResponse:
+def clean(req: SuggestRequest) -> SuggestRequest:
+    """Known symptoms only (no repeats), and a tidy breed."""
     symptoms = store.symptoms()
-    req = req.model_copy(update={"symptoms": [s for s in dict.fromkeys(req.symptoms) if s in symptoms]})
+    breed = " ".join((req.breed or "").split()) or None
+    return req.model_copy(update={"symptoms": [s for s in dict.fromkeys(req.symptoms) if s in symptoms], "breed": breed})
+
+
+async def suggest(req: SuggestRequest) -> SuggestResponse:
+    req = clean(req)
     if not req.symptoms:
         return SuggestResponse(items=[], source="none")
 
@@ -69,7 +77,10 @@ async def suggest(req: SuggestRequest) -> SuggestResponse:
         return from_template(req)
     try:
         similar = await asyncio.wait_for(
-            asyncio.to_thread(databricks.similar_cases, req.species, req.age_years, req.symptoms),
+            asyncio.to_thread(
+                databricks.similar_cases, req.species, req.age_years, req.symptoms,
+                breed=req.breed, weight_lbs=req.weight_lbs,
+            ),
             timeout=databricks.QUERY_TIMEOUT_S,
         )
     except Exception:

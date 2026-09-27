@@ -17,6 +17,7 @@ from sqlalchemy import text
 load_dotenv()
 
 from app import store  # noqa: E402  (needs DATABASE_URL from .env)
+from app.models import Template  # noqa: E402
 
 SCHEMA = Path(__file__).parent.parent / "db" / "schema.sql"
 
@@ -43,7 +44,7 @@ def main():
     catalog = store.load_json("catalog.json")
     explanations = [{"catalog_id": k, **v} for k, v in store.load_json("explanations.json").items()]
     symptoms = store.load_json("symptoms.json")
-    templates = [{"symptoms": [], **t} for t in store.load_json("templates.json")]
+    templates = [Template(**t).model_dump() for t in store.load_json("templates.json")]  # AI-made ones are kept
     resources = [
         {"eligibility": None, "url": None, "phone": None, **r, "sort_order": i}
         for i, r in enumerate(store.load_json("resources.json"))
@@ -56,7 +57,7 @@ def main():
         upsert(conn, "catalog_items", "id", catalog, {"default_group"}, overwrite=reset)
         upsert(conn, "explanations", "catalog_id", explanations, overwrite=reset)
         upsert(conn, "symptoms", "id", symptoms, overwrite=reset)
-        upsert(conn, "templates", "id", templates)
+        upsert(conn, "templates", "id", templates, {"groups"})
         upsert(conn, "resources", "id", resources)
 
     print(f"Seeded {len(catalog)} catalog items, {len(explanations)} explanations, {len(symptoms)} symptoms, "

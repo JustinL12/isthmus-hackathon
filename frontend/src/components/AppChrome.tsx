@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { describePet } from "@/lib/pet";
 import type { Plan } from "@/lib/types";
 import { card } from "@/lib/ui";
 
@@ -69,8 +70,7 @@ export function PlanHeader({ plan, note, badge }: { plan: Plan; note?: string; b
     <AppHeader
       title={
         <>
-          {pet.name}
-          {pet.age_years != null && ` · ${pet.age_years}-year-old ${pet.species}`}
+          {pet.name} · {describePet(pet)}
         </>
       }
       subtitle={[pet.reason, `Owner: ${plan.owner_name}`].filter(Boolean).join(" · ")}

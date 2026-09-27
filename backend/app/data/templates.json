@@ -1,11 +1,11 @@
 [
-  { "id": "vomiting-senior-cat", "name": "Vomiting senior cat", "species": "cat",
+  { "id": "vomiting-senior-cat", "name": "Vomiting senior cat", "species": "cat", "age_min": 8,
     "symptoms": ["vomiting", "not-eating", "weight-loss", "lethargy", "drinking-more"],
     "item_ids": ["exam", "antiemetic-inj", "sq-fluids", "blood-panel", "xrays-abd", "urinalysis", "t4", "rx-diet"] },
   { "id": "limping-dog", "name": "Limping dog", "species": "dog",
     "symptoms": ["limping", "pain", "swelling"],
     "item_ids": ["exam", "nsaid", "sedation", "xrays-limb"] },
-  { "id": "annual-wellness", "name": "Annual wellness (dog)", "species": "dog",
+  { "id": "annual-wellness", "name": "Annual wellness (dog)", "species": "dog", "age_min": 1,
     "symptoms": ["wellness"],
     "item_ids": ["exam", "rabies", "dhpp", "heartworm-test", "blood-panel", "urinalysis", "dental-cleaning"] },
   { "id": "itchy-dog", "name": "Itchy dog", "species": "dog",

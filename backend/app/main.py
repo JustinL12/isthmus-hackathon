@@ -1,5 +1,7 @@
+import asyncio
 import logging
 import os
+from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 
@@ -13,8 +15,26 @@ from .routers import ai, catalog, plans, reference, suggest  # noqa: E402
 from .services import claude, databricks, email  # noqa: E402
 
 logging.basicConfig(level=logging.INFO)
+log = logging.getLogger(__name__)
 
-app = FastAPI(title="Isthmus Care API")
+
+async def _migrate_databricks():
+    try:
+        await asyncio.to_thread(databricks.ensure_tables)
+    except Exception:
+        log.exception("Databricks column check failed")
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    # Add any new Databricks columns in the background: the warehouse may take a minute to wake.
+    task = asyncio.create_task(_migrate_databricks()) if databricks.is_configured() else None
+    yield
+    if task:
+        task.cancel()
+
+
+app = FastAPI(title="Isthmus Care API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
