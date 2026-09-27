@@ -17,11 +17,14 @@ export function FlipText({
   text,
   className,
   duration = 450,
+  instant = false,
 }: {
   text: string;
   className?: string;
   /** Duration of each character flip in milliseconds. */
   duration?: number;
+  /** Swap without flipping (and without the old text briefly taking up space). */
+  instant?: boolean;
 }) {
   const container = useRef<HTMLSpanElement>(null);
   const [layers, setLayers] = useState<{ current: string; previous: string | null }>({
@@ -30,7 +33,7 @@ export function FlipText({
   });
 
   // New text: keep the old one on screen to flip out while the new one flips in.
-  if (text !== layers.current) setLayers({ current: text, previous: layers.current });
+  if (text !== layers.current) setLayers({ current: text, previous: instant ? null : layers.current });
 
   useLayoutEffect(() => {
     if (layers.previous == null) return;
