@@ -49,6 +49,20 @@ def build_pdf(plan: Plan) -> bytes:
         pdf.cell(0, 7, f"Payment: split into {SPLIT_PAYMENTS} payments", new_x="LMARGIN", new_y="NEXT")
     pdf.ln(4)
 
+    if plan.tests:
+        pdf.set_font("Helvetica", "B", 13)
+        pdf.cell(0, 9, _t(f"Tests run today ({money(sum(t.price for t in plan.tests))})"), new_x="LMARGIN", new_y="NEXT")
+        pdf.set_font("Helvetica", "", 11)
+        for t in plan.tests:
+            pdf.cell(150, 7, _t(t.name))
+            pdf.cell(0, 7, money(t.price), align="R", new_x="LMARGIN", new_y="NEXT")
+            if t.result:
+                pdf.set_text_color(100, 100, 100)
+                pdf.set_font("Helvetica", "", 9)
+                pdf.multi_cell(0, 5, _t(f"Result: {t.result}"), new_x="LMARGIN", new_y="NEXT")
+                pdf.set_text_color(0, 0, 0)
+                pdf.set_font("Helvetica", "", 11)
+        pdf.ln(3)
     _section(pdf, f"Done today ({money(sum(i.price for i in done))})", done)
     _section(pdf, "Scheduled for a recheck", recheck, show_date=True)
     _section(pdf, "Revisit at next visit", later, show_date=True)

@@ -147,6 +147,22 @@ class PlanItem(BaseModel):
     recheck_date: date | None = None
 
 
+class TestRun(BaseModel):
+    """A diagnostic the vet already ran this visit: billed today, outside the treatment plan."""
+
+    id: str
+    catalog_id: str
+    name: str
+    price: float
+    result: str | None = Field(None, max_length=2000)  # what the vet wrote, e.g. "USG 1.012, BUN 48"
+    explanation: Explanation | None = None
+
+
+class TestRunIn(BaseModel):
+    catalog_id: str
+    result: str | None = Field(None, max_length=2000)
+
+
 class Plan(BaseModel):
     id: str
     pet: Pet
@@ -156,6 +172,7 @@ class Plan(BaseModel):
     status: PlanStatus = "draft"
     share_token: str | None = None
     items: list[PlanItem] = []
+    tests: list[TestRun] = []  # tests already run today: always billed, never in the plan's groups
     symptoms: list[str] = []
     notes: str | None = None
     owner_email: str | None = None
@@ -173,7 +190,7 @@ class PlanSummary(BaseModel):
     status: PlanStatus
     share_token: str | None = None
     item_count: int
-    total_today: float  # items selected for today
+    total_today: float  # tests run plus items selected for today
     created_at: datetime | None = None
 
 
@@ -200,6 +217,7 @@ class CreatePlanRequest(BaseModel):
     symptoms: list[str] = []
     notes: str | None = None
     owner_email: str | None = None
+    tests: list[TestRunIn] = Field([], max_length=30)  # run tests are left out of the plan's items
 
 
 class UpdatePlanRequest(BaseModel):
@@ -208,6 +226,7 @@ class UpdatePlanRequest(BaseModel):
     budget: float | None = None
     payment_choice: PaymentChoice | None = None
     items: list[PlanItem] | None = None
+    tests: list[TestRun] | None = None  # e.g. results written in later
     owner_email: str | None = None
 
 

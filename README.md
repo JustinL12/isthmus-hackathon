@@ -20,7 +20,8 @@ Nothing to install. Open it in a browser (a laptop or tablet works best).
 - **Vet student practice** (small blue button, in the very bottom right): a game for vet students. A random
   past case starts with only the basics; ask the owner questions, run tests (they go on the bill under
   *Tests run*), build a plan, and get scored against what the real vet chose.
-- **Start a new visit:** enter any cat or dog, its breed, weight and symptoms, and watch the AI draft
+- **Start a new visit:** enter any cat or dog, its breed, weight and symptoms, record any tests you ran
+  and their results (billed at the top of the bill, outside the treatment plan), and watch the AI draft
   a plan from similar past visits.
 - **View previous visits:** reopen a plan in progress, or open an agreed visit's take-home summary
   (PDF download included).
@@ -41,10 +42,12 @@ backend/    FastAPI (Python)                            → owned by Back end an
 | --- | --- | --- |
 | `app/page.tsx` | Landing | FE2 |
 | `app/setup/page.tsx` | Vet setup step 1: patient and owner (pet, species, age, reason, owner, budget). `?new=1` starts a blank visit | FE2 |
-| `app/setup/template/page.tsx` | Vet setup step 2: pick the visit template, build the plan | FE2 |
-| `app/plan/[id]/arrange/page.tsx` | Vet setup step 3: drag items between groups, add from price list, remove, notes for owner | FE2 |
+| `app/setup/symptoms/page.tsx` | Vet setup step 2: symptoms and notes for the AI | FE2 |
+| `app/setup/tests/page.tsx` | Vet setup step 3: tests already run and their results (billed today, left out of the plan) | FE2 |
+| `app/setup/template/page.tsx` | Vet setup step 4: pick the AI draft or a visit template, build the plan | FE2 |
+| `app/plan/[id]/arrange/page.tsx` | Vet setup step 5: drag items between groups, add from price list, remove, notes for owner, edit test results | FE2 |
 | `components/setup/` | Step bar with back/forward arrows, board, item card, price-list search | FE2 |
-| `lib/setup-draft.ts` | Steps 1–2 draft, kept in sessionStorage so the arrows, back button and reload keep it | FE2 |
+| `lib/setup-draft.ts` | Steps 1–4 draft, kept in sessionStorage so the arrows, back button and reload keep it | FE2 |
 | `app/plan/[id]/page.tsx` | **Shared decision screen**: groups, explanations, live total, budget bar, payment toggle | FE1 |
 | `app/plan/[id]/resources/page.tsx` | "Can't cover it today?" Madison resources | FE2 |
 | `app/summary/[token]/page.tsx` | Take-home summary via share link | FE2 |
@@ -139,7 +142,7 @@ npm run dev
 
 ## Demo flow
 
-`/setup` (patient) → `/setup/template` (template, Build plan) → `/plan/{id}/arrange` (drag) → Review with owner → `/plan/{id}` (tick items, watch total drop)
+`/setup` (patient) → `/setup/symptoms` → `/setup/tests` (tests run, results) → `/setup/template` (template, Build plan) → `/plan/{id}/arrange` (drag) → Review with owner → `/plan/{id}` (tick items, watch total drop)
 → Agree → `/summary/{token}` (share link). "Can't cover it today?" → `/plan/{id}/resources`.
 
 ## TODO (next passes)

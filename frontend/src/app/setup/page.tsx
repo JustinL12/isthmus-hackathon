@@ -1,7 +1,8 @@
 "use client";
 
-// Vet setup step 1 of 4: patient and owner. Step 2 (/setup/symptoms) takes the symptoms, step 3
-// (/setup/template) picks the AI draft or a visit template, step 4 (/plan/[id]/arrange) sorts the items.
+// Vet setup step 1 of 5: patient and owner. Step 2 (/setup/symptoms) takes the symptoms, step 3
+// (/setup/tests) the tests already run, step 4 (/setup/template) picks the AI draft or a visit
+// template, step 5 (/plan/[id]/arrange) sorts the items.
 // Open with ?new=1 to start a blank visit, or ?demo=1 for the Mochi demo; plain /setup resumes this tab's draft.
 
 import { useRouter } from "next/navigation";
@@ -18,7 +19,7 @@ import { PageSpinner } from "@/components/Spinner";
 function Shell({ children }: { children: ReactNode }) {
   return (
     <div className="flex-1 text-ink">
-      <AppHeader title="New visit plan" subtitle="Step 1 of 4" badge="Vet setup" />
+      <AppHeader title="New visit plan" subtitle="Step 1 of 5" badge="Vet setup" />
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-8">{children}</main>
     </div>
   );
@@ -62,7 +63,7 @@ export default function PatientStep({
       />
       <div className="mt-6">
         <PageIntro
-          eyebrow="Step 1 of 4 · Vet setup"
+          eyebrow="Step 1 of 5 · Vet setup"
           title={
             <>
               Who&apos;s <span className="text-badger">visiting</span> today?
@@ -91,7 +92,7 @@ export default function PatientStep({
             <SpeciesSearch
               id="species"
               value={draft.species}
-              // A new species makes the picked template and the breed wrong; step 3 picks again.
+              // A new species makes the picked template and the breed wrong; step 4 picks again.
               onChange={(species) => updateDraft({ species, templateId: "", breed: "" })}
             />
           </div>

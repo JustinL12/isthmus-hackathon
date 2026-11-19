@@ -51,6 +51,15 @@ def list_catalog(include_inactive: bool = False):
     ]
 
 
+@router.get("/tests", response_model=list[CatalogItem])
+def list_tests():
+    """Diagnostics a vet can record as already run this visit (the tests practice mode can run too)."""
+    from ..services import practice
+
+    catalog = store.catalog()
+    return [catalog[cid] for cid in practice.tests()]
+
+
 @router.post("", response_model=CatalogItemDetail, status_code=201)
 def create_item(req: CatalogItemCreate):
     name = req.name.strip()

@@ -14,11 +14,13 @@ export function CatalogSearch({
   catalog,
   group,
   inPlan,
+  ran = new Set(),
   onAdd,
 }: {
   catalog: CatalogItem[];
   group: Group;
   inPlan: Set<string>; // catalog ids already on the plan
+  ran?: Set<string>; // catalog ids already run as tests (billed on their own)
   onAdd: (item: CatalogItem) => void;
 }) {
   const [query, setQuery] = useState("");
@@ -46,6 +48,7 @@ export function CatalogSearch({
         {results.length === 0 && <li className="py-3 text-sm text-muted">No matching items in the price list.</li>}
         {results.map(({ item, alias }) => {
           const added = inPlan.has(item.id);
+          const tested = ran.has(item.id);
           return (
             <li key={item.id} className="flex items-center gap-3 py-2">
               <div className="min-w-0 flex-1">
@@ -55,7 +58,9 @@ export function CatalogSearch({
                   {alias && <> · matches “{alias}”</>}
                 </p>
               </div>
-              {added ? (
+              {tested ? (
+                <span className="shrink-0 text-xs text-primary">Test run</span>
+              ) : added ? (
                 <span className="shrink-0 text-xs text-muted">In plan</span>
               ) : (
                 <button

@@ -7,7 +7,16 @@ from urllib.parse import quote
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Response
 
 from .. import store
-from ..models import CreatePlanRequest, EmailRequest, ItemChoice, Plan, PlanItem, PlanSummary, UpdatePlanRequest
+from ..models import (
+    CreatePlanRequest,
+    EmailRequest,
+    ItemChoice,
+    Plan,
+    PlanItem,
+    PlanSummary,
+    TestRun,
+    UpdatePlanRequest,
+)
 from ..services import databricks, email, template_gen
 from ..services.rechecks import suggest_recheck
 from ..services.summary_pdf import build_pdf
@@ -46,9 +55,30 @@ def create_plan(req: CreatePlanRequest):
     else:
         raise HTTPException(422, "Send either items or template_id")
 
-    unknown = [c.catalog_id for c in choices if c.catalog_id not in catalog]
+    unknown = [c.catalog_id for c in [*choices, *req.tests] if c.catalog_id not in catalog]
     if unknown:
         raise HTTPException(422, f"Unknown catalog ids: {unknown}")
+
+    # Tests already run are billed on their own, so they leave the treatment plan. (Templates
+    # and drafts keep them: when no test is run first, they stay plan items.)
+    tests: list[TestRun] = []
+    for t in req.tests:
+        if any(x.catalog_id == t.catalog_id for x in tests):
+            continue
+        item = catalog[t.catalog_id]
+        result = (t.result or "").strip() or None
+        tests.append(
+            TestRun(
+                id=store.new_id(),
+                catalog_id=item.id,
+                name=item.name,
+                price=item.price,
+                result=result,
+                explanation=explanations.get(item.id),
+            )
+        )
+    ran = {t.catalog_id for t in tests}
+    plan_choices = [c for c in choices if c.catalog_id not in ran]
 
     items = [
         PlanItem(
@@ -62,7 +92,7 @@ def create_plan(req: CreatePlanRequest):
             reason=c.reason,
             explanation=explanations.get(c.catalog_id),
         )
-        for c in choices
+        for c in plan_choices
     ]
     plan = Plan(
         id=store.new_id(),
@@ -74,6 +104,7 @@ def create_plan(req: CreatePlanRequest):
         notes=req.notes,
         source=source,
         items=items,
+        tests=tests,
         suggested=choices if source == "suggest" else [],
         template_id=template_id,
     )
@@ -91,7 +122,7 @@ def list_plans(limit: int = Query(50, ge=1, le=200)):
             status=p.status,
             share_token=p.share_token,
             item_count=len(p.items),
-            total_today=sum(i.price for i in p.items if i.selected),
+            total_today=sum(t.price for t in p.tests) + sum(i.price for i in p.items if i.selected),
             created_at=created,
         )
         for p, created in store.list_plans(limit)

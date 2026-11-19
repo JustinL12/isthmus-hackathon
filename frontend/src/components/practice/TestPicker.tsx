@@ -1,29 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { searchCatalog } from "@/lib/catalog";
+import { searchTests } from "@/lib/catalog";
 import { money } from "@/lib/plan-math";
 import type { CatalogItem } from "@/lib/types";
 import { card, focusRing, inputBase, sectionLabel } from "@/lib/ui";
-
-// Textbook names students may type, on top of the clinic's own shorthand (CBC, UA, 4Dx…).
-const STUDY_TERMS: Record<string, string[]> = {
-  exam: ["physical exam", "PE", "examination"],
-  "blood-panel": ["bloodwork", "chemistry", "CBC", "complete blood count", "biochemistry", "serum chemistry"],
-  urinalysis: ["urine culture", "urine sample"],
-  t4: ["thyroid", "hyperthyroid"],
-  "xrays-abd": ["abdominal radiographs", "abdominal x-ray", "abdomen x-ray", "radiograph"],
-  "xrays-chest": ["thoracic radiographs", "chest radiographs", "thorax x-ray", "radiograph"],
-  "xrays-limb": ["limb radiographs", "orthopedic radiographs", "leg radiograph", "radiograph", "bone x-ray"],
-  "ultrasound-abd": ["abdominal ultrasound", "ultrasonography", "AUS"],
-  fecal: ["fecal flotation", "stool sample", "parasite test", "giardia"],
-  "heartworm-test": ["heartworm antigen", "SNAP 4Dx"],
-  "fiv-felv": ["retrovirus", "FeLV", "FIV", "leukemia virus"],
-  "ear-cytology": ["ear cytology", "otic swab", "otoscopic"],
-  "skin-cytology": ["skin cytology", "skin scrape", "impression smear"],
-  "eye-stain": ["fluorescein", "corneal stain", "corneal ulcer test"],
-  "blood-pressure": ["blood pressure", "doppler", "systolic"],
-};
 
 /**
  * Search for a diagnostic to run. There's no list to browse on purpose: the student has to
@@ -43,8 +24,7 @@ export function TestPicker({
   onRun: (item: CatalogItem) => void;
 }) {
   const [query, setQuery] = useState("");
-  const searchable = tests.map((t) => ({ ...t, aliases: [...t.aliases, ...(STUDY_TERMS[t.id] ?? [])] }));
-  const results = query.trim().length >= 2 ? searchCatalog(searchable, query).slice(0, 6) : [];
+  const results = query.trim().length >= 2 ? searchTests(tests, query).slice(0, 6) : [];
 
   return (
     <section aria-label="Run a test" className={`${card} p-4`}>

@@ -2,7 +2,7 @@
 
 // Shared screen, step 3 of 3: pick today's care. The owner ticks items and whole groups, and the
 // sidebar keeps the total against the budget. Items can't be moved between groups here; the vet
-// sorts them in vet setup (step 4, /plan/[id]/arrange).
+// sorts them in vet setup (step 5, /plan/[id]/arrange).
 // "Agree & send summary" saves the plan and opens the take-home summary.
 
 import Link from "next/link";
@@ -16,8 +16,9 @@ import { GROUP_TONE, GroupBoard } from "@/components/GroupBoard";
 import { OwnerStepper, PlanStatus } from "@/components/OwnerSteps";
 import { PaymentToggle } from "@/components/PaymentToggle";
 import { TakeHomeSummary } from "@/components/TakeHomeSummary";
+import { TestsRunSection } from "@/components/TestsRunSection";
 import { api } from "@/lib/api";
-import { fullTotal, money, todayTotal } from "@/lib/plan-math";
+import { fullTotal, money, testsTotal, todayTotal } from "@/lib/plan-math";
 import { GROUPS, type Group, type PaymentChoice } from "@/lib/types";
 import { focusRing } from "@/lib/ui";
 import { usePlan } from "@/lib/use-plan";
@@ -36,7 +37,9 @@ export default function ChoosePage({ params }: { params: Promise<{ id: string }>
 
   if (!plan) return <PlanStatus error={error} />;
 
-  const total = todayTotal(plan.items);
+  // Tests already run are always part of today's bill; the owner chooses the rest.
+  const tests = testsTotal(plan.tests);
+  const total = tests + todayTotal(plan.items);
   const overBy = plan.budget != null && total > plan.budget ? total - plan.budget : 0;
   const { pet } = plan;
 
@@ -71,6 +74,11 @@ export default function ChoosePage({ params }: { params: Promise<{ id: string }>
 
           <div className="mt-8 grid gap-8 md:grid-cols-[minmax(0,1fr)_280px] md:gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-8">
             <motion.div className="space-y-5" {...RISE}>
+              <TestsRunSection
+                tests={plan.tests ?? []}
+                title="Tests already run today"
+                note={`Already done for ${pet.name}, so they're on today's bill. Choose the treatment below.`}
+              />
               <div className="flex flex-wrap gap-2 text-xs">
                 {GROUPS.map((g) => {
                   const groupItems = plan.items.filter((i) => i.group === g.id);
@@ -109,7 +117,7 @@ export default function ChoosePage({ params }: { params: Promise<{ id: string }>
               <div>
                 <h2 className="text-xs font-semibold uppercase tracking-wider text-muted">Today&apos;s plan</h2>
                 <p className="font-serif text-5xl tabular-nums">{money(total)}</p>
-                <p className="text-sm text-slate">Full estimate: {money(fullTotal(plan.items))}</p>
+                <p className="text-sm text-slate">Full estimate: {money(tests + fullTotal(plan.items))}</p>
               </div>
 
               <BudgetBar
@@ -157,7 +165,7 @@ export default function ChoosePage({ params }: { params: Promise<{ id: string }>
 
               <hr className="border-line" />
 
-              <TakeHomeSummary items={plan.items} />
+              <TakeHomeSummary items={plan.items} tests={plan.tests ?? []} />
 
               <div className="space-y-2">
                 <button

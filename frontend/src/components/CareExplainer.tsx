@@ -4,7 +4,8 @@ import { AnimatePresence, motion, type Transition, useReducedMotion } from "fram
 import { type ReactNode, useLayoutEffect, useRef, useState } from "react";
 import { FlipText } from "@/components/FlipText";
 import { GROUP_TONE } from "@/components/GroupBoard";
-import { GROUPS, type Group, type PlanItem } from "@/lib/types";
+import { money, testsTotal } from "@/lib/plan-math";
+import { GROUPS, type Group, type PlanItem, type TestRun } from "@/lib/types";
 
 // Walks the owner through how the estimate is organized, one screen at a time:
 //   0. customized plans  ->  1. choose by your preferences (red)  ->  2. what each group means
@@ -35,10 +36,13 @@ const ROW_RISE = { y: 36, duration: 0.5 }; // group rows drift in a little slowe
 
 export function CareExplainer({
   petName,
+  tests = [],
   onShowPlan,
 }: {
   petName: string;
   items: PlanItem[];
+  /** Tests already run: on today's bill whatever the owner picks, so they sit outside the groups. */
+  tests?: TestRun[];
   /** "See the full plan" (or "Skip to full plan"). */
   onShowPlan: () => void;
 }) {
@@ -154,6 +158,17 @@ export function CareExplainer({
               ];
             })}
           </motion.div>
+        )}
+        {stage === LAST_STAGE && tests.length > 0 && (
+          <motion.p
+            key="tests"
+            {...rise(ROWS_START_S + GROUPS.length * ROW_GAP_S, ROW_RISE)}
+            className="rounded-2xl border border-line bg-white p-5 text-ink/85"
+          >
+            <span className="font-semibold text-ink">Tests already run today: </span>
+            {tests.map((t) => t.name).join(", ")} ({money(testsTotal(tests))}). They&apos;re done, so they&apos;re on
+            today&apos;s bill, apart from the groups.
+          </motion.p>
         )}
       </AnimatePresence>
     </section>

@@ -29,6 +29,32 @@ export function searchCatalog(catalog: CatalogItem[], query: string): CatalogMat
   return ranked.sort((a, b) => a.rank - b.rank).map((r) => r.match);
 }
 
+// Textbook names vets and students may type, on top of the clinic's own shorthand (CBC, UA, 4Dx…).
+const STUDY_TERMS: Record<string, string[]> = {
+  exam: ["physical exam", "PE", "examination"],
+  "blood-panel": ["bloodwork", "chemistry", "CBC", "complete blood count", "biochemistry", "serum chemistry"],
+  urinalysis: ["urine culture", "urine sample"],
+  t4: ["thyroid", "hyperthyroid"],
+  "xrays-abd": ["abdominal radiographs", "abdominal x-ray", "abdomen x-ray", "radiograph"],
+  "xrays-chest": ["thoracic radiographs", "chest radiographs", "thorax x-ray", "radiograph"],
+  "xrays-limb": ["limb radiographs", "orthopedic radiographs", "leg radiograph", "radiograph", "bone x-ray"],
+  "ultrasound-abd": ["abdominal ultrasound", "ultrasonography", "AUS"],
+  fecal: ["fecal flotation", "stool sample", "parasite test", "giardia"],
+  "heartworm-test": ["heartworm antigen", "SNAP 4Dx"],
+  "fiv-felv": ["retrovirus", "FeLV", "FIV", "leukemia virus"],
+  "ear-cytology": ["ear cytology", "otic swab", "otoscopic"],
+  "skin-cytology": ["skin cytology", "skin scrape", "impression smear"],
+  "eye-stain": ["fluorescein", "corneal stain", "corneal ulcer test"],
+  "blood-pressure": ["blood pressure", "doppler", "systolic"],
+};
+
+/** Search diagnostics by name, code, the clinic's shorthand, or the textbook terms above. */
+export const searchTests = (tests: CatalogItem[], query: string) =>
+  searchCatalog(
+    tests.map((t) => ({ ...t, aliases: [...t.aliases, ...(STUDY_TERMS[t.id] ?? [])] })),
+    query,
+  );
+
 // crypto.randomUUID only exists in secure contexts; a tablet on http://<laptop-ip>:3000 isn't one.
 export function newItemId(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(6));

@@ -6,8 +6,9 @@
 import { use, useEffect, useRef, useState } from "react";
 import { AppHeader, PageIntro, PlanHeader, StatusPage } from "@/components/AppChrome";
 import { Disclaimer } from "@/components/Disclaimer";
+import { TestsRunSection } from "@/components/TestsRunSection";
 import { api } from "@/lib/api";
-import { SPLIT_PAYMENTS, fullTotal, money, todayTotal } from "@/lib/plan-math";
+import { SPLIT_PAYMENTS, fullTotal, money, testsTotal, todayTotal } from "@/lib/plan-math";
 import type { Group, Plan, PlanItem } from "@/lib/types";
 import { GROUP_TONE, card, focusRing, sectionLabel } from "@/lib/ui";
 import { PageSpinner } from "@/components/Spinner";
@@ -147,7 +148,8 @@ export default function SummaryPage({ params }: { params: Promise<{ token: strin
   const doneToday = plan.items.filter((i) => i.selected);
   const recheck = plan.items.filter((i) => !i.selected && i.group === "soon");
   const nextVisit = plan.items.filter((i) => !i.selected && i.group !== "soon");
-  const total = todayTotal(plan.items);
+  const tests = plan.tests ?? [];
+  const total = testsTotal(tests) + todayTotal(plan.items);
   const installment = total / SPLIT_PAYMENTS;
 
   return (
@@ -164,6 +166,7 @@ export default function SummaryPage({ params }: { params: Promise<{ token: strin
             }
             subtitle="What was done today and what comes next. Share it with a roommate or parent who helps."
           />
+          <TestsRunSection tests={tests} note="Done today, with what each test showed." />
           <Section title="Done today" tone="essential" items={doneToday} />
           <Section title="Scheduled for a recheck" tone="soon" items={recheck} />
           <Section title="Revisit at next visit" tone="optional" items={nextVisit} />
@@ -173,7 +176,7 @@ export default function SummaryPage({ params }: { params: Promise<{ token: strin
           <div>
             <h2 className={sectionLabel}>Today&apos;s total</h2>
             <p className="font-serif text-5xl tabular-nums">{money(total)}</p>
-            <p className="text-sm text-slate">Full estimate: {money(fullTotal(plan.items))}</p>
+            <p className="text-sm text-slate">Full estimate: {money(testsTotal(tests) + fullTotal(plan.items))}</p>
           </div>
           <p className="text-sm text-good">
             {plan.payment_choice === "split"

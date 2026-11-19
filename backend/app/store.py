@@ -230,9 +230,9 @@ _plan_created: dict[str, datetime] = {}  # memory mode's stand-in for the create
 
 _PLAN_COLUMNS = (
     "id", "pet", "owner_name", "owner_email", "budget", "payment_choice", "status",
-    "share_token", "symptoms", "notes", "source", "items", "suggested", "template_id",
+    "share_token", "symptoms", "notes", "source", "items", "tests", "suggested", "template_id",
 )
-_JSON_COLUMNS = {"pet", "items", "suggested"}
+_JSON_COLUMNS = {"pet", "items", "tests", "suggested"}
 
 
 def new_id() -> str:

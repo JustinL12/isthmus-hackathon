@@ -58,6 +58,8 @@ export const api = {
   removeCatalogItem: (id: string) => request<CatalogItemDetail>(`/catalog/${id}`, { method: "DELETE" }),
   restoreCatalogItem: (id: string) =>
     request<CatalogItemDetail>(`/catalog/${id}`, { method: "PATCH", body: JSON.stringify({ active: true }) }),
+  /** Diagnostics a vet can record as already run this visit. */
+  testCatalog: () => request<CatalogItem[]>("/catalog/tests"),
   explanations: () => request<Record<string, Explanation>>("/explanations"),
   templates: () => request<Template[]>("/templates"),
   /** This species' templates, best fit for the patient first (symptoms, age/weight/breed, what vets picked before). */
@@ -74,7 +76,7 @@ export const api = {
   createPlan: (body: CreatePlanRequest) => request<Plan>("/plans", { method: "POST", body: JSON.stringify(body) }),
   listPlans: () => request<PlanSummary[]>("/plans"),
   getPlan: (id: string) => request<Plan>(`/plans/${id}`),
-  updatePlan: (id: string, body: Partial<Pick<Plan, "budget" | "payment_choice" | "items" | "owner_email">>) =>
+  updatePlan: (id: string, body: Partial<Pick<Plan, "budget" | "payment_choice" | "items" | "tests" | "owner_email">>) =>
     request<Plan>(`/plans/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
   agreePlan: (id: string) => request<Plan>(`/plans/${id}/agree`, { method: "POST" }),
   emailPlan: (id: string, email: string) =>

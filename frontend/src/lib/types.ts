@@ -114,6 +114,16 @@ export interface PlanItem {
   recheck_date?: string | null;
 }
 
+/** A test the vet already ran this visit: billed today, outside the treatment plan's groups. */
+export interface TestRun {
+  id: string;
+  catalog_id: string;
+  name: string;
+  price: number;
+  result: string | null; // what the vet wrote, e.g. "USG 1.012, BUN 48"
+  explanation?: Explanation | null;
+}
+
 export interface Plan {
   id: string;
   pet: Pet;
@@ -123,6 +133,7 @@ export interface Plan {
   status: "draft" | "agreed";
   share_token: string | null;
   items: PlanItem[];
+  tests: TestRun[]; // tests already run today: always billed, never in the groups
   symptoms: string[];
   notes: string | null;
   owner_email: string | null;
@@ -139,7 +150,7 @@ export interface PlanSummary {
   status: Plan["status"];
   share_token: string | null;
   item_count: number;
-  total_today: number; // items selected for today
+  total_today: number; // tests run plus items selected for today
   created_at: string | null; // ISO date-time
 }
 
@@ -177,6 +188,7 @@ export interface CreatePlanRequest {
   symptoms?: string[];
   notes?: string | null;
   owner_email?: string | null;
+  tests?: { catalog_id: string; result: string | null }[]; // run tests are left out of the plan's items
 }
 
 // ---- Vet student practice ----

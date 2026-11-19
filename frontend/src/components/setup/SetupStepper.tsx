@@ -2,7 +2,7 @@
 
 import { focusRing } from "@/lib/ui";
 
-export const SETUP_STEPS = ["Patient", "Symptoms", "Visit template", "Sort items"] as const;
+export const SETUP_STEPS = ["Patient", "Symptoms", "Tests", "Visit template", "Sort items"] as const;
 
 export interface StepNav {
   /** Where the arrow goes, e.g. "Next: Visit template". Used as its accessible name and tooltip. */
@@ -11,8 +11,8 @@ export interface StepNav {
   disabled?: boolean;
 }
 
-/** Vet setup progress (Patient → Symptoms → Visit template → Sort items). */
-export function SetupStepper(props: { step: 1 | 2 | 3 | 4; back?: StepNav; forward?: StepNav }) {
+/** Vet setup progress (Patient → Symptoms → Tests → Visit template → Sort items). */
+export function SetupStepper(props: { step: 1 | 2 | 3 | 4 | 5; back?: StepNav; forward?: StepNav }) {
   return <Stepper steps={SETUP_STEPS} label="Vet setup steps" {...props} />;
 }
 

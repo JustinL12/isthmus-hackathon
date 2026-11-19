@@ -2,8 +2,9 @@ import type { Plan } from "./types";
 
 // Mochi/Alex demo from the project plan. Mirrors what POST /api/plans builds from the
 // "vomiting-senior-cat" template (backend/app/data), so /plan/demo works with no backend.
-// Full estimate $780; essentials $360 (the only items ticked to start, as in real plans); Alex's
-// budget $400. Prices are samples.
+// The blood panel was already run (a $170 test, billed apart from the plan). Full estimate $780;
+// today $360 (the test plus the essentials, the only items ticked to start, as in real plans);
+// Alex's budget $400. Prices are samples.
 
 export const DEMO_PLAN_ID = "demo";
 
@@ -20,6 +21,23 @@ export const samplePlan: Plan = {
   owner_email: null,
   source: "template",
   suggested: [],
+  tests: [
+    {
+      id: "demo-test-blood-panel",
+      catalog_id: "blood-panel",
+      name: "Blood panel",
+      price: 170,
+      result: "Kidney values mildly high (BUN 38, creatinine 2.1). Otherwise normal.",
+      explanation: {
+        what: "Blood tests that check organs like the kidneys and liver, plus blood cells.",
+        why: "Finds common causes of vomiting in older cats, like kidney disease.",
+        if_postponed: "The vet may miss an underlying problem that changes treatment.",
+        steps: "A small blood sample is taken from a leg or the neck, which takes a couple of minutes. Many results come back the same day; some take 1–2 days from the lab.",
+        cost_includes: "Drawing the blood, the lab tests for organ function and blood cell counts, and the vet reviewing the results with you.",
+        questions: ["When will the results be back, and how will you tell me?", "Which results would change today's treatment?", "Will we need to repeat this later?"],
+      },
+    },
+  ],
   items: [
     {
       id: "demo-exam",
@@ -67,22 +85,6 @@ export const samplePlan: Plan = {
         steps: "A small needle goes under the loose skin between the shoulders and fluid flows in for a few minutes. It leaves a soft bump that is absorbed over several hours.",
         cost_includes: "The sterile fluids, the needle and line, and the technician's time.",
         questions: ["How will I know if my pet is still dehydrated?", "Could we give fluids at home if this helps?", "When should my pet start drinking normally again?"],
-      },
-    },
-    {
-      id: "demo-blood-panel",
-      catalog_id: "blood-panel",
-      name: "Blood panel",
-      price: 170,
-      group: "essential",
-      selected: true,
-      explanation: {
-        what: "Blood tests that check organs like the kidneys and liver, plus blood cells.",
-        why: "Finds common causes of vomiting in older cats, like kidney disease.",
-        if_postponed: "The vet may miss an underlying problem that changes treatment.",
-        steps: "A small blood sample is taken from a leg or the neck, which takes a couple of minutes. Many results come back the same day; some take 1–2 days from the lab.",
-        cost_includes: "Drawing the blood, the lab tests for organ function and blood cell counts, and the vet reviewing the results with you.",
-        questions: ["When will the results be back, and how will you tell me?", "Which results would change today's treatment?", "Will we need to repeat this later?"],
       },
     },
     {

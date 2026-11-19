@@ -1,8 +1,9 @@
-import type { PlanItem } from "@/lib/types";
+import type { PlanItem, TestRun } from "@/lib/types";
 
-/** Live preview of the take-home plan, built from what's ticked today. */
-export function TakeHomeSummary({ items }: { items: PlanItem[] }) {
+/** Live preview of the take-home plan, built from the tests run and what's ticked today. */
+export function TakeHomeSummary({ items, tests = [] }: { items: PlanItem[]; tests?: TestRun[] }) {
   const rows = [
+    ...(tests.length ? [{ label: "Tests run", tone: "text-primary", items: tests }] : []),
     { label: "Doing today", tone: "text-essential", items: items.filter((i) => i.selected) },
     {
       label: "Scheduled for a recheck",

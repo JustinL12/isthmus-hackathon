@@ -177,3 +177,46 @@ def test_add_symptom(client):
     # Usable in /suggest right away (template fallback here: nothing matches pale gums alone).
     r = client.post("/api/suggest", json={"species": "cat", "age_years": 3, "symptoms": ["pale-gums", "vomiting"]}).json()
     assert r["source"] == "template"
+
+
+def test_tests_run_leave_the_plan(client, monkeypatch):
+    monkeypatch.setattr(databricks, "export_agreed_plan", lambda plan: None)
+    tests = [{"catalog_id": "blood-panel", "result": "  BUN 48, creatinine 2.4  "}, {"catalog_id": "urinalysis"}]
+    plan = client.post("/api/plans", json={**MOCHI, "template_id": "vomiting-senior-cat", "tests": tests}).json()
+
+    ids = {i["catalog_id"] for i in plan["items"]}
+    assert "blood-panel" not in ids and "urinalysis" not in ids and "exam" in ids
+    assert [(t["catalog_id"], t["price"], t["result"]) for t in plan["tests"]] == [
+        ("blood-panel", 170, "BUN 48, creatinine 2.4"),
+        ("urinalysis", 70, None),
+    ]
+    assert total(plan["items"]) == 780 - 170 - 70
+
+    # Results can be written in later.
+    patched = [{**t, "result": "Dilute, USG 1.012"} if t["catalog_id"] == "urinalysis" else t for t in plan["tests"]]
+    r = client.patch(f"/api/plans/{plan['id']}", json={"tests": patched})
+    assert r.status_code == 200 and r.json()["tests"][1]["result"] == "Dilute, USG 1.012"
+
+    # Today's total counts every test, whether or not plan items are ticked.
+    summary = next(p for p in client.get("/api/plans").json() if p["id"] == plan["id"])
+    assert summary["total_today"] == 170 + 70 + total(plan["items"], only_selected=True)
+
+    agreed = client.post(f"/api/plans/{plan['id']}/agree").json()
+    assert len(agreed["tests"]) == 2
+    assert client.patch(f"/api/plans/{plan['id']}", json={"tests": []}).status_code == 409
+    assert client.get(f"/api/share/{agreed['share_token']}/pdf").content.startswith(b"%PDF")
+
+
+def test_tests_without_a_run_stay_in_the_plan(client):
+    plan = client.post("/api/plans", json={**MOCHI, "template_id": "vomiting-senior-cat"}).json()
+    assert {"blood-panel", "urinalysis"} <= {i["catalog_id"] for i in plan["items"]} and plan["tests"] == []
+
+
+def test_unknown_test(client):
+    r = client.post("/api/plans", json={**MOCHI, "items": [], "tests": [{"catalog_id": "nope"}]})
+    assert r.status_code == 422
+
+
+def test_test_catalog(client):
+    tests = {t["id"] for t in client.get("/api/catalog/tests").json()}
+    assert {"blood-panel", "urinalysis", "xrays-abd"} <= tests and "antiemetic-inj" not in tests

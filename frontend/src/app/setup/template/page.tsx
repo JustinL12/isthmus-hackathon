@@ -1,9 +1,10 @@
 "use client";
 
-// Vet setup step 3 of 4: pick the AI's draft for the symptoms from step 2, or a visit template,
+// Vet setup step 4 of 5: pick the AI's draft for the symptoms from step 2, or a visit template,
 // then build the plan (or return to the one already built from this same draft, keeping the
-// vet's step 4 edits). Templates are ranked for this patient by the backend (symptoms, age,
+// vet's step 5 edits). Templates are ranked for this patient by the backend (symptoms, age,
 // weight and breed, and what vets picked for similar visits); some are AI-made from past visits.
+// Tests run in step 3 are billed on their own, so they're left out of every option here.
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -78,7 +79,7 @@ function patientLine(d: SetupDraft) {
   return `${d.petName.trim()} · ${describePet(profile(d))}`;
 }
 
-// Same patient context as PlanHeader shows once the plan exists (step 4, decision screen).
+// Same patient context as PlanHeader shows once the plan exists (step 5, decision screen).
 function Header({ draft }: { draft: SetupDraft }) {
   return (
     <AppHeader
@@ -150,10 +151,19 @@ export default function TemplateStep() {
   }, [rankKey]);
   const ranks = rankKey ? (rankings.get(rankKey) ?? rankResults[rankKey] ?? null) : null;
 
-  // Ask for the AI draft (Databricks similar cases + Claude); takes a few seconds.
+  // Tests already run (step 3): left out of every option, and their results go to the AI as notes.
+  const ranIds = new Set(draft.tests.map((t) => t.catalogId));
+  const catalogLoaded = Object.keys(catalog).length > 0;
+  const testNotes = draft.tests
+    .map((t) => `${catalog[t.catalogId]?.name ?? t.catalogId}: ${t.result.trim() || "results pending"}`)
+    .join("; ");
+  const aiNotes = [draft.notes.trim(), testNotes && `Tests already run: ${testNotes}`].filter(Boolean).join("\n");
+
+  // Ask for the AI draft (Databricks similar cases + Claude); takes a few seconds. With tests run,
+  // wait for the price list so their names (not ids) go in the notes, and it's asked only once.
   const aiRequest: SuggestRequest | null =
-    hydrated && draft.symptoms.length
-      ? { ...profile(draft), symptoms: draft.symptoms, notes: draft.notes.trim() || null }
+    hydrated && draft.symptoms.length && (catalogLoaded || draft.tests.length === 0)
+      ? { ...profile(draft), symptoms: draft.symptoms, notes: aiNotes || null }
       : null;
   const aiKey = aiRequest ? JSON.stringify(aiRequest) : null;
   useEffect(() => {
@@ -235,7 +245,7 @@ export default function TemplateStep() {
             : // No template for this species (e.g. rabbits): start from the price list.
               (defaultTemplate(templates, draft, ranks)?.id ?? (templates.length ? SKIP_TEMPLATE : null));
   const selected = templates.find((t) => t.id === choice) ?? null;
-  // Template that suggests groups for items the vet adds in step 4.
+  // Template that suggests groups for items the vet adds in step 5.
   const aiFallbackId = ai.status === "done" ? ai.res.fallback_template_id : null;
   const hintTemplate =
     selected ?? templates.find((t) => t.id === aiFallbackId) ?? defaultTemplate(templates, draft, ranks);
@@ -268,6 +278,14 @@ export default function TemplateStep() {
         }
       }
       if (planId) {
+        // Same tests as when it was built; save any results written since.
+        const existing = await api.getPlan(planId);
+        const results = new Map(body.tests?.map((t) => [t.catalog_id, t.result]));
+        if (existing.tests.some((t) => (results.get(t.catalog_id) ?? null) !== t.result)) {
+          await api.updatePlan(planId, {
+            tests: existing.tests.map((t) => ({ ...t, result: results.get(t.catalog_id) ?? null })),
+          });
+        }
         updateDraft({ templateId: choice });
       } else {
         if (choice === AI_DRAFT && !aiDraft) throw new Error("AI draft not ready");
@@ -279,7 +297,7 @@ export default function TemplateStep() {
                 items: aiDraft.items.map(({ catalog_id, group, reason }) => ({ catalog_id, group, reason })),
               }
             : choice === SKIP_TEMPLATE
-              ? { ...body, template_id: undefined, items: [] } // empty plan; the vet adds items in step 4
+              ? { ...body, template_id: undefined, items: [] } // empty plan; the vet adds items in step 5
               : body;
         const plan = await api.createPlan(request);
         planId = plan.id;
@@ -325,7 +343,9 @@ export default function TemplateStep() {
   );
 
   const templateCard = (t: Template) => {
-    const items = t.item_ids.map((id) => catalog[id]).filter((c): c is CatalogItem => c != null);
+    const all = t.item_ids.map((id) => catalog[id]).filter((c): c is CatalogItem => c != null);
+    const items = all.filter((c) => !ranIds.has(c.id));
+    const alreadyRun = all.filter((c) => ranIds.has(c.id));
     const checked = choice === t.id;
     // Only this species' templates are ranked for the patient.
     const reasons = t.species === draft.species ? reasonsFor(t) : [];
@@ -362,6 +382,7 @@ export default function TemplateStep() {
             )}
             {ai && t.summary && <span className="mt-2 block text-sm text-muted">{t.summary}</span>}
             <span className="mt-1 block text-sm text-slate">{items.map((c) => c.name).join(", ")}</span>
+            {alreadyRun.length > 0 && <AlreadyRun names={alreadyRun.map((c) => c.name)} />}
             {ai && (
               <button
                 type="button"
@@ -406,6 +427,8 @@ export default function TemplateStep() {
       );
     }
     const checked = choice === AI_DRAFT;
+    const aiItems = aiDraft ? aiDraft.items.filter((i) => !ranIds.has(i.catalog_id)) : [];
+    const aiAlreadyRun = aiDraft ? aiDraft.items.filter((i) => ranIds.has(i.catalog_id)) : [];
     return (
       <label className={optionClass(checked)}>
         <input
@@ -425,7 +448,8 @@ export default function TemplateStep() {
             </span>
             {aiDraft ? (
               <>
-                <span className="mt-1 block text-sm text-slate">{aiDraft.items.map((i) => i.name).join(", ")}</span>
+                <span className="mt-1 block text-sm text-slate">{aiItems.map((i) => i.name).join(", ")}</span>
+                {aiAlreadyRun.length > 0 && <AlreadyRun names={aiAlreadyRun.map((i) => i.name)} />}
                 <span className="mt-2 block text-xs text-muted">
                   Based on {aiDraft.similar_case_count} similar past cases
                   {aiDraft.vet_case_count > 0 && `, ${aiDraft.vet_case_count} from this clinic's vets`}. Your changes
@@ -441,9 +465,9 @@ export default function TemplateStep() {
           {aiDraft && (
             <span className="shrink-0 text-right">
               <span className="block font-serif text-3xl leading-none tabular-nums">
-                {money(aiDraft.items.reduce((sum, i) => sum + i.price, 0))}
+                {money(aiItems.reduce((sum, i) => sum + i.price, 0))}
               </span>
-              <span className="mt-1 block text-xs text-muted">{aiDraft.items.length} items</span>
+              <span className="mt-1 block text-xs text-muted">{aiItems.length} items</span>
             </span>
           )}
         </span>
@@ -456,13 +480,13 @@ export default function TemplateStep() {
       <Header draft={draft} />
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-8">
         <SetupStepper
-          step={3}
-          back={{ label: "Back: Symptoms", onClick: () => router.push("/setup/symptoms"), disabled: building }}
+          step={4}
+          back={{ label: "Back: Tests", onClick: () => router.push("/setup/tests"), disabled: building }}
           forward={{ label: forwardLabel, onClick: () => void build(), disabled: !ready || building }}
         />
         <div className="mt-6">
           <PageIntro
-            eyebrow="Step 3 of 4 · Vet setup"
+            eyebrow="Step 4 of 5 · Vet setup"
             title={
               <>
                 Pick a <span className="text-badger">starting plan</span>
@@ -547,11 +571,30 @@ export default function TemplateStep() {
               </Link>
             </div>
             <p className="text-sm text-slate">{symptomText || "None entered"}</p>
+            <div className="flex items-baseline justify-between gap-3 pt-2">
+              <h2 className={sectionLabel}>Tests run</h2>
+              <Link href="/setup/tests" className={quietLink}>
+                Edit
+              </Link>
+            </div>
+            {draft.tests.length ? (
+              <ul className="space-y-0.5 text-sm text-slate">
+                {draft.tests.map((t) => (
+                  <li key={t.catalogId} className="flex justify-between gap-3">
+                    <span className="min-w-0 truncate">{catalog[t.catalogId]?.name ?? t.catalogId}</span>
+                    {catalog[t.catalogId] && <span className="tabular-nums">{money(catalog[t.catalogId].price)}</span>}
+                  </li>
+                ))}
+                <li className="pt-1 text-xs text-muted">Billed today, outside the plan below.</li>
+              </ul>
+            ) : (
+              <p className="text-sm text-slate">None</p>
+            )}
             <hr className="border-line" />
             {rebuild && (
               <p className="rounded-lg bg-soon-soft px-3 py-2 text-sm text-soon">
                 The patient details, symptoms or starting plan changed since you built this plan. Continuing starts a
-                fresh item list; changes made in step 4 won&apos;t carry over.
+                fresh item list; changes made in step 5 won&apos;t carry over.
               </p>
             )}
             {buildError && (
@@ -578,6 +621,16 @@ export default function TemplateStep() {
   );
 }
 
+// Items of an option that were already run as tests in step 3 (billed on their own).
+function AlreadyRun({ names }: { names: string[] }) {
+  return (
+    <span className="mt-1 block text-xs text-primary">
+      ✓ {names.join(", ")} already run, so {names.length === 1 ? "it's" : "they're"} billed as{" "}
+      {names.length === 1 ? "a test" : "tests"}
+    </span>
+  );
+}
+
 function TemplateGroup({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="space-y-3">
@@ -590,7 +643,7 @@ function TemplateGroup({ title, children }: { title: string; children: ReactNode
 function StatusShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex-1 text-ink">
-      <AppHeader title="New visit plan" subtitle="Step 3 of 4" note="Sample estimate" badge="Vet setup" />
+      <AppHeader title="New visit plan" subtitle="Step 4 of 5" note="Sample estimate" badge="Vet setup" />
       <main className="mx-auto max-w-7xl px-4 py-6 text-muted sm:px-8">{children}</main>
     </div>
   );

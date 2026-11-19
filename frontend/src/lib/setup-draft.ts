@@ -1,4 +1,4 @@
-// What the vet has entered in vet setup steps 1–3, shared between the step pages.
+// What the vet has entered in vet setup steps 1–4, shared between the step pages.
 // Kept in sessionStorage (one tab = one visit), so the step arrows, the browser's back
 // button and a reload all keep it. Read through useSetupDraft(); change with updateDraft().
 
@@ -16,9 +16,16 @@ export interface SetupDraft {
   budget: string; // raw input text; "" = not given
   symptoms: string[]; // symptom ids (step 2)
   notes: string; // vet notes for the AI draft (step 2)
-  templateId: string; // "" = not picked yet (step 3 preselects one); or AI_DRAFT / SKIP_TEMPLATE
-  /** The plan step 3 built from this draft, and the request that built it (see planRequest). */
+  tests: DraftTest[]; // tests already run, with what the vet wrote (step 3)
+  templateId: string; // "" = not picked yet (step 4 preselects one); or AI_DRAFT / SKIP_TEMPLATE
+  /** The plan step 4 built from this draft, and the request that built it (see planRequest). */
   plan: { id: string; key: string } | null;
+}
+
+/** A test the vet ran before picking a plan. `result` is raw text; "" = not written yet. */
+export interface DraftTest {
+  catalogId: string;
+  result: string;
 }
 
 /** A new visit: everything blank. */
@@ -32,6 +39,7 @@ export const DEFAULT_DRAFT: SetupDraft = {
   budget: "",
   symptoms: [],
   notes: "",
+  tests: [],
   templateId: "",
   plan: null,
 };
@@ -76,6 +84,12 @@ function sanitize(raw: unknown): SetupDraft {
       ? r.symptoms.filter((s): s is string => typeof s === "string")
       : DEFAULT_DRAFT.symptoms,
     notes: str(r.notes, ""),
+    tests: Array.isArray(r.tests)
+      ? r.tests.flatMap((t) => {
+          const x = t as Record<string, unknown> | null;
+          return x && typeof x.catalogId === "string" ? [{ catalogId: x.catalogId, result: str(x.result, "") }] : [];
+        })
+      : [],
     templateId: str(r.templateId, ""),
     plan: plan && typeof plan.id === "string" && typeof plan.key === "string" ? { id: plan.id, key: plan.key } : null,
   };
@@ -170,13 +184,19 @@ export function planRequest(d: SetupDraft, start: { id: string; reason: string }
     budget: optionalNumber(d.budget),
     symptoms: d.symptoms,
     notes: d.notes.trim() || null,
+    tests: d.tests.map((t) => ({ catalog_id: t.catalogId, result: t.result.trim() || null })),
   };
 }
 
-/** Identifies a request, so step 3 can tell whether the plan it built still matches the draft. */
-export const requestKey = (body: CreatePlanRequest) => JSON.stringify(body);
+/**
+ * Identifies a request, so the starting-plan step can tell whether the plan it built still matches
+ * the draft. Test results aren't part of it (they don't change the items, and are saved onto the
+ * existing plan instead); which tests were run is.
+ */
+export const requestKey = (body: CreatePlanRequest) =>
+  JSON.stringify({ ...body, tests: (body.tests ?? []).map((t) => t.catalog_id) });
 
-/** Draft describing an existing plan (going back from step 4 when this tab has no draft for it). */
+/** Draft describing an existing plan (going back from step 5 when this tab has no draft for it). */
 export function draftFromPlan(plan: Plan, templateId: string | null): SetupDraft {
   const d: SetupDraft = {
     petName: plan.pet.name,
@@ -188,11 +208,12 @@ export function draftFromPlan(plan: Plan, templateId: string | null): SetupDraft
     budget: plan.budget == null ? "" : String(plan.budget),
     symptoms: plan.symptoms,
     notes: plan.notes ?? "",
+    tests: (plan.tests ?? []).map((t) => ({ catalogId: t.catalog_id, result: t.result ?? "" })),
     templateId: plan.source === "suggest" ? AI_DRAFT : plan.source === "blank" ? SKIP_TEMPLATE : (templateId ?? ""),
     plan: null,
   };
   // The plan's reason is kept as is, so the symptom labels and template name aren't needed to rebuild the request.
-  // Without the template the request can't be rebuilt: an empty key never matches, so step 3
+  // Without the template the request can't be rebuilt: an empty key never matches, so step 4
   // warns that continuing starts a fresh item list instead of silently replacing this plan.
   d.plan = {
     id: plan.id,

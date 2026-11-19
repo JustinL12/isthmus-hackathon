@@ -1,6 +1,6 @@
 "use client";
 
-// Vet setup step 4: confirm the suggested groups (drag, or each card's group picker), add items
+// Vet setup step 5 of 5: confirm the suggested groups (drag, or each card's group picker), add items
 // from the clinic price list (into the open group), remove items, and leave notes for the owner.
 // Changes save as you go.
 
@@ -13,11 +13,12 @@ import { CatalogSearch } from "@/components/setup/CatalogSearch";
 import { SetupBoard } from "@/components/setup/SetupBoard";
 import { SetupStepper } from "@/components/setup/SetupStepper";
 import { Disclaimer } from "@/components/Disclaimer";
+import { TestsRunSection } from "@/components/TestsRunSection";
 import { ApiError, api } from "@/lib/api";
 import { planItemFromCatalog } from "@/lib/catalog";
-import { fullTotal, money } from "@/lib/plan-math";
+import { fullTotal, money, testsTotal } from "@/lib/plan-math";
 import { draftFromPlan, getDraft, setDraft } from "@/lib/setup-draft";
-import type { CatalogItem, Explanation, Group, Plan, PlanItem } from "@/lib/types";
+import type { CatalogItem, Explanation, Group, Plan, PlanItem, TestRun } from "@/lib/types";
 import { GROUPS } from "@/lib/types";
 import { card, ctaWrapper, secondaryButton, sectionLabel } from "@/lib/ui";
 import { usePlanItemsSaver } from "@/lib/use-plan-items-saver";
@@ -45,6 +46,7 @@ export default function ArrangePage({
   const [removed, setRemoved] = useState<{ item: PlanItem; index: number } | null>(null);
   const [notice, setNotice] = useState("");
   const [leaving, setLeaving] = useState<"back" | "review" | null>(null); // saving before leaving the page
+  const [testSave, setTestSave] = useState<"idle" | "saving" | "error">("idle");
   const { save, flush, status, error } = usePlanItemsSaver(id);
 
   useEffect(() => {
@@ -165,12 +167,26 @@ export default function ArrangePage({
 
   // Added items go into the group open on the board, so they appear where the vet is looking.
   const add = (c: CatalogItem) => {
-    if (items.some((i) => i.catalog_id === c.id)) return;
+    if (items.some((i) => i.catalog_id === c.id) || plan.tests.some((t) => t.catalog_id === c.id)) return;
     const group = focused;
     if (removed?.item.catalog_id === c.id) setRemoved(null);
     setNotice(`Added ${c.name} to ${GROUPS.find((g) => g.id === group)?.label}.`);
     commit([...items, planItemFromCatalog(c, group, explanations)]);
   };
+
+  // Test results can be written in (or corrected) here too; saved straight away.
+  async function setTestResult(testId: string, result: string | null) {
+    if (!plan) return;
+    const tests: TestRun[] = plan.tests.map((t) => (t.id === testId ? { ...t, result } : t));
+    setPlan({ ...plan, tests });
+    setTestSave("saving");
+    try {
+      await api.updatePlan(id, { tests });
+      setTestSave("idle");
+    } catch {
+      setTestSave("error");
+    }
+  }
 
   async function review() {
     setLeaving("review");
@@ -178,7 +194,7 @@ export default function ArrangePage({
     else setLeaving(null);
   }
 
-  // Back to step 3. Its "Next" returns to this plan when this tab's draft is the one that built
+  // Back to step 4. Its "Next" returns to this plan when this tab's draft is the one that built
   // it; otherwise (plan opened from a link) rebuild the draft from the plan first.
   const back = async () => {
     setLeaving("back");
@@ -189,8 +205,12 @@ export default function ArrangePage({
 
   const codes = Object.fromEntries(catalog.map((c) => [c.id, c.code]));
   const inPlan = new Set(items.map((i) => i.catalog_id));
-  const total = fullTotal(items);
-  const essential = items.filter((i) => i.group === "essential").reduce((sum, i) => sum + i.price, 0);
+  const ran = new Set(plan.tests.map((t) => t.catalog_id));
+  // Tests already run are billed today whatever the owner picks, so both totals include them.
+  const tests = testsTotal(plan.tests);
+  const total = tests + fullTotal(items);
+  const essential = tests + items.filter((i) => i.group === "essential").reduce((sum, i) => sum + i.price, 0);
+  const empty = items.length === 0 && plan.tests.length === 0;
   const { pet } = plan;
 
   return (
@@ -198,17 +218,17 @@ export default function ArrangePage({
       <PlanHeader plan={plan} note="Sample estimate" badge="Vet setup" />
       <main className="mx-auto max-w-7xl space-y-6 px-4 pt-6 sm:px-8">
         <SetupStepper
-          step={4}
+          step={5}
           back={{ label: "Back: Visit template", onClick: () => void back(), disabled: leaving != null }}
           forward={{
             label: `Next: Review with ${plan.owner_name}`,
             onClick: () => void review(),
-            disabled: leaving != null || items.length === 0,
+            disabled: leaving != null || empty,
           }}
         />
         <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
           <PageIntro
-            eyebrow="Step 4 of 4 · Vet setup"
+            eyebrow="Step 5 of 5 · Vet setup"
             title={
               <>
                 <span className="text-badger">{pet.name}&apos;s</span> estimate
@@ -222,7 +242,7 @@ export default function ArrangePage({
               <dd className="font-serif text-4xl tabular-nums">{money(total)}</dd>
             </div>
             <div>
-              <dt className={sectionLabel}>Essential now</dt>
+              <dt className={sectionLabel}>{tests ? "Tests + essential" : "Essential now"}</dt>
               <dd
                 className={`font-serif text-4xl tabular-nums ${
                   plan.budget == null ? "" : essential > plan.budget ? "text-bad" : "text-good"
@@ -250,10 +270,25 @@ export default function ArrangePage({
           review the plan with {plan.owner_name}.
         </p>
 
+        {plan.tests.length > 0 && (
+          <div className="space-y-1">
+            <TestsRunSection
+              tests={plan.tests}
+              note={`Already done, so ${plan.owner_name} sees them at the top of the bill, outside the groups below.`}
+              onResultChange={(testId, result) => void setTestResult(testId, result)}
+            />
+            {testSave === "error" && (
+              <p role="alert" className="text-sm text-bad">
+                Couldn&apos;t save the test result. Check the connection and edit it again.
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Price list on the left of the board; stacked above it on narrower screens. */}
         <div className="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
           <div className="lg:sticky lg:top-6 lg:self-start">
-            <CatalogSearch catalog={catalog} group={focused} inPlan={inPlan} onAdd={add} />
+            <CatalogSearch catalog={catalog} group={focused} inPlan={inPlan} ran={ran} onAdd={add} />
           </div>
           <SetupBoard
             items={items}
@@ -284,8 +319,8 @@ export default function ArrangePage({
             <SaveStatusText status={status} error={error} onRetry={() => void flush()} />
           </div>
           <div className="flex items-center gap-3">
-            {items.length === 0 && <span className="text-sm text-muted">Add at least one item.</span>}
-            <button onClick={review} disabled={leaving != null || items.length === 0} className={ctaWrapper}>
+            {empty && <span className="text-sm text-muted">Add at least one item.</span>}
+            <button onClick={review} disabled={leaving != null || empty} className={ctaWrapper}>
               <ChromaticLabel className="shadow-lg shadow-badger/30">
                 {leaving === "review" ? "Saving…" : `Review with ${plan.owner_name} →`}
               </ChromaticLabel>

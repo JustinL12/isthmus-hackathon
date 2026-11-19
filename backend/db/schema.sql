@@ -89,3 +89,6 @@ alter table explanations add column if not exists questions text[] not null defa
 
 -- What the vet started from: a template id, 'ai' or 'blank'.
 alter table plans add column if not exists template_id text;
+
+-- Tests already run this visit, with the vet's results: billed today, outside the treatment plan.
+alter table plans add column if not exists tests jsonb not null default '[]';

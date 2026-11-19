@@ -354,6 +354,8 @@ def export_agreed_plan(plan: Plan) -> None:
         return
     try:
         items = [{"catalog_id": i.catalog_id, "group": i.group, "selected": i.selected} for i in plan.items]
+        # Tests run first were done today, so to past-case counts they're essential items.
+        items += [{"catalog_id": t.catalog_id, "group": "essential", "selected": True} for t in plan.tests]
         draft = [{"catalog_id": i.catalog_id, "group": i.group} for i in plan.suggested]
         symptoms = [s for s in plan.symptoms if _SAFE_ID.match(s)]
         pet = plan.pet

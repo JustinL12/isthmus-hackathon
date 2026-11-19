@@ -1,8 +1,9 @@
 "use client";
 
-// Vet setup step 2 of 4: build the pet's symptom list (from the clinic's list, or new ones the
+// Vet setup step 2 of 5: build the pet's symptom list (from the clinic's list, or new ones the
 // vet types in, which are saved for everyone) plus optional notes for the AI. Step 3
-// (/setup/template) shows the AI's draft for these symptoms next to the visit templates.
+// (/setup/tests) records any tests run; step 4 (/setup/template) shows the AI's draft next to
+// the visit templates.
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -53,7 +54,7 @@ export default function SymptomsStep() {
 
   if (!hydrated || !complete) return <Shell><PageSpinner /></Shell>;
 
-  // Same patient line as step 3's header ("Mochi · 12-year-old Domestic Shorthair · 9.5 lbs").
+  // Same patient line as step 4's header ("Mochi · 12-year-old Domestic Shorthair · 9.5 lbs").
   const pet = describePet({
     species: draft.species,
     age_years: optionalNumber(draft.age),
@@ -87,8 +88,8 @@ export default function SymptomsStep() {
           >
             Try again
           </button>
-          <Link href="/setup/template" className={secondaryButton}>
-            Skip to visit templates →
+          <Link href="/setup/tests" className={secondaryButton}>
+            Skip to tests →
           </Link>
         </div>
       </StatusPage>
@@ -111,8 +112,8 @@ export default function SymptomsStep() {
     setSymptoms((list) => (list.some((x) => x.id === s.id) ? list : [...list, s]));
     add(s);
   }
-  const next = () => router.push("/setup/template");
-  const nextLabel = chosen.length ? "Next: AI draft and templates" : "Next: Visit template";
+  const next = () => router.push("/setup/tests");
+  const nextLabel = "Next: Tests";
 
   return (
     <div className="flex-1 text-ink">
@@ -125,7 +126,7 @@ export default function SymptomsStep() {
         />
         <div className="mt-6">
           <PageIntro
-            eyebrow="Step 2 of 4 · Vet setup"
+            eyebrow="Step 2 of 5 · Vet setup"
             title={
               <>
                 What&apos;s going on with <span className="text-badger">{draft.petName.trim()}</span>?
@@ -197,7 +198,7 @@ export default function SymptomsStep() {
           <div className="flex justify-end">
             <button type="button" onClick={next} className={`w-full sm:w-auto ${ctaWrapper}`}>
               <ChromaticLabel className="px-8 py-3.5 text-base shadow-lg shadow-badger/30">
-                {chosen.length ? "Next: see the plan options →" : "Next: visit template →"}
+                Next: tests →
               </ChromaticLabel>
             </button>
           </div>
@@ -210,7 +211,7 @@ export default function SymptomsStep() {
 function Shell({ children }: { children: ReactNode }) {
   return (
     <div className="flex-1 text-ink">
-      <AppHeader title="New visit plan" subtitle="Step 2 of 4" note="Sample estimate" badge="Vet setup" />
+      <AppHeader title="New visit plan" subtitle="Step 2 of 5" note="Sample estimate" badge="Vet setup" />
       <main className="mx-auto max-w-7xl px-4 py-6 text-muted sm:px-8">{children}</main>
     </div>
   );
