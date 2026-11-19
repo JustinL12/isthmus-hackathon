@@ -11,8 +11,8 @@ from fastapi import FastAPI  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
 from . import store  # noqa: E402
-from .routers import ai, catalog, plans, reference, suggest  # noqa: E402
-from .services import claude, databricks, email  # noqa: E402
+from .routers import ai, catalog, plans, practice, reference, suggest  # noqa: E402
+from .services import claude, databricks, email, owner_ai  # noqa: E402
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -43,7 +43,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-for r in (reference.router, catalog.router, plans.router, suggest.router, ai.router):
+for r in (reference.router, catalog.router, plans.router, suggest.router, ai.router, practice.router):
     app.include_router(r, prefix="/api")
 
 
@@ -59,4 +59,5 @@ def health(warm: bool = False):
         "databricks_up": databricks.ping() if warm and databricks.is_configured() else None,
         "claude": claude.is_configured(),
         "email": email.is_configured(),
+        "owner_ai": owner_ai.is_configured(),
     }

@@ -178,3 +178,60 @@ export interface CreatePlanRequest {
   notes?: string | null;
   owner_email?: string | null;
 }
+
+// ---- Vet student practice ----
+
+/** What the student sees at the start: no symptoms, no plan. */
+export interface PracticeCase {
+  case_id: string;
+  name: string;
+  species: Species;
+  breed: string | null;
+  age_years: number | null;
+  weight_lbs: number | null;
+  tests: string[]; // catalog ids that can be run as tests
+}
+
+export interface AskResponse {
+  answer: string;
+  revealed: string[]; // symptom ids the answer confirmed
+}
+
+export interface TestResponse {
+  catalog_id: string;
+  name: string;
+  price: number;
+  findings: string[]; // empty = nothing abnormal
+  revealed: string[];
+}
+
+export interface PracticeItem {
+  catalog_id: string;
+  group: Group;
+}
+
+export interface GradedItem {
+  catalog_id: string;
+  name: string;
+  price: number;
+  expected: Group | null; // null = not in the real case
+  chosen: Group | "test" | null; // null = missed
+}
+
+export interface CategoryScore {
+  total: number;
+  credit: number;
+  coverage: number;
+  target: number;
+}
+
+export interface GradeResponse {
+  score: number;
+  essential: CategoryScore;
+  soon: CategoryScore;
+  penalty: number;
+  items: GradedItem[];
+  symptoms: string[];
+  student_total: number;
+  case_total: number;
+}

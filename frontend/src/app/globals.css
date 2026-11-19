@@ -34,6 +34,10 @@
   --color-soon-soft: #f8e5c4;
   --color-optional: #2b6a5c;
   --color-optional-soft: #d8ebe6;
+  /* Vet student practice (/practice): blue instead of badger red, so it's clear which side you're on. */
+  --color-study: #0b4f9c;
+  --color-study-deep: #083b75;
+  --color-study-soft: #dbe7f6;
 }
 
 /* Shared screen (/plan/[id] and its explain and choose steps): some are short and some

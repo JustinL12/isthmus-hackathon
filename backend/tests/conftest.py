@@ -2,7 +2,7 @@ import os
 
 # Force the offline setup before app modules read env (load_dotenv won't override these).
 for key in ("DATABASE_URL", "DATABRICKS_HOST", "DATABRICKS_HTTP_PATH", "DATABRICKS_TOKEN",
-            "ANTHROPIC_API_KEY", "RESEND_API_KEY"):
+            "ANTHROPIC_API_KEY", "RESEND_API_KEY", "GEMINI_API_KEY"):
     os.environ[key] = ""
 
 import pytest  # noqa: E402

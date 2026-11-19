@@ -241,3 +241,76 @@ class ParsedLineItem(BaseModel):
     raw_name: str
     price: float | None = None
     catalog_id: str | None = Field(None, description="Matched catalog item, if any")
+
+
+# ---- Vet student practice ----
+
+
+class PracticeCase(BaseModel):
+    """What the student sees at the start: no symptoms, no plan."""
+
+    case_id: str
+    name: str
+    species: Species
+    breed: str | None = None
+    age_years: float | None = None
+    weight_lbs: float | None = None
+    tests: list[str]  # catalog ids the student can run as tests
+
+
+class AskRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=400)
+    known: list[str] = Field([], max_length=40)  # symptom ids already found (for "anything else?")
+
+
+class AskResponse(BaseModel):
+    answer: str
+    revealed: list[str] = []  # symptom ids the answer confirmed
+
+
+class TestRequest(BaseModel):
+    catalog_id: str
+
+
+class TestResponse(BaseModel):
+    catalog_id: str
+    name: str
+    price: float
+    findings: list[str]  # one line per abnormal finding; empty = nothing abnormal
+    revealed: list[str] = []  # symptom ids the test showed
+
+
+class PracticeItem(BaseModel):
+    catalog_id: str
+    group: Group
+
+
+class GradeRequest(BaseModel):
+    tests: list[str] = Field([], max_length=60)
+    plan: list[PracticeItem] = Field([], max_length=60)
+
+
+class GradedItem(BaseModel):
+    catalog_id: str
+    name: str
+    price: float
+    expected: Group | None  # group in the real case; None = not in the real case
+    chosen: Group | Literal["test"] | None  # where the student put it; None = missed
+
+
+class CategoryScore(BaseModel):
+    total: int  # items in the real case's group
+    credit: float  # 1 per item in the right group, 0.5 in the wrong group
+    coverage: float  # credit / total (1.0 when total is 0)
+    target: float  # coverage that earns full marks (0.95 essential, 0.75 soon)
+
+
+class GradeResponse(BaseModel):
+    score: int  # 0-100
+    essential: CategoryScore
+    soon: CategoryScore
+    penalty: int  # points taken off for extra items
+    items: list[GradedItem]  # every item in the real case or the student's bill
+    symptoms: list[str]  # the case's symptom labels, revealed after grading
+    student_total: float
+    case_total: float  # real case, without the "optional" items

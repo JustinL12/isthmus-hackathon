@@ -58,8 +58,8 @@ export default function Home() {
         </div>
       </main>
 
-      {/* Small, out of the way in one corner: the clinic's price list, and the demo (for showing the app,
-          not for daily use). Stacked so neither covers the other. */}
+      {/* Small, out of the way in one corner: the clinic's price list, and vet student practice
+          (blue, like the practice pages). Stacked so neither covers the other. */}
       <div className="fixed right-4 bottom-4 z-20 flex flex-col items-end gap-2 sm:right-6 sm:bottom-6">
         <Link
           href="/clinic"
@@ -68,14 +68,14 @@ export default function Home() {
           Clinic price list
         </Link>
         <Link
-          href="/setup?demo=1"
-          aria-label="Open the Mochi demo"
-          className={`inline-flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-2 text-xs font-semibold text-white shadow-lg shadow-primary/30 transition-transform hover:scale-105 motion-reduce:transition-none ${focusRing}`}
+          href="/practice"
+          className={`inline-flex items-center gap-1.5 rounded-full bg-study px-3.5 py-2 text-xs font-semibold text-white shadow-lg shadow-study/30 transition-transform hover:scale-105 motion-reduce:transition-none ${focusRing}`}
         >
-          <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor" aria-hidden>
-            <path d="M8 5.5v13l10.5-6.5z" />
+          <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M22 10 12 5 2 10l10 5 10-5z" />
+            <path d="M6 12v5c3 2 9 2 12 0v-5" />
           </svg>
-          Mochi demo
+          Vet student practice
         </Link>
       </div>
     </div>

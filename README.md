@@ -17,8 +17,9 @@ Nothing to install. Open it in a browser (a laptop or tablet works best).
 
 **What to try**
 
-- **Mochi demo** (small green button, in the very bottom right): a 12-year-old cat that's vomiting, already filled in.
-  Click through: patient → symptoms → pick the AI draft → sort items → review with the owner.
+- **Vet student practice** (small blue button, in the very bottom right): a game for vet students. A random
+  past case starts with only the basics; ask the owner questions, run tests (they go on the bill under
+  *Tests run*), build a plan, and get scored against what the real vet chose.
 - **Start a new visit:** enter any cat or dog, its breed, weight and symptoms, and watch the AI draft
   a plan from similar past visits.
 - **View previous visits:** reopen a plan in progress, or open an agreed visit's take-home summary
@@ -47,6 +48,7 @@ backend/    FastAPI (Python)                            → owned by Back end an
 | `app/plan/[id]/page.tsx` | **Shared decision screen**: groups, explanations, live total, budget bar, payment toggle | FE1 |
 | `app/plan/[id]/resources/page.tsx` | "Can't cover it today?" Madison resources | FE2 |
 | `app/summary/[token]/page.tsx` | Take-home summary via share link | FE2 |
+| `app/practice/page.tsx`, `components/practice/` | Vet student practice (blue theme): owner chat, tests, bill, score card | |
 | `components/` | `GroupBoard` (dnd-kit), `ItemCard`, `BudgetBar`, `PaymentToggle`, `Disclaimer` | FE1 |
 | `lib/types.ts` | Shared types (mirror `backend/app/models.py`) | all |
 | `lib/api.ts` | Typed API client | all |
@@ -81,6 +83,9 @@ suggestions fall back to the best-matching template. `GET /health` shows what's 
 | `app/routers/catalog.py` | Clinic price list: `GET /catalog` (`?include_inactive=true`), `POST /catalog`, `PATCH /catalog/{id}`, `DELETE /catalog/{id}` (soft; restore with `PATCH active=true`). Existing plans keep their prices. No auth yet |
 | `app/routers/suggest.py` | `POST /suggest` (symptoms → grouped items) |
 | `app/routers/plans.py` | `POST /plans`, `GET/PATCH /plans/{id}`, `POST /plans/{id}/agree`, `POST /plans/{id}/email`, `GET /share/{token}`, `GET /share/{token}/pdf` |
+| `app/routers/practice.py` | Vet student practice: `POST /practice/cases` (random case, basics only), `/practice/cases/{id}/ask`, `/tests`, `/grade` |
+| `app/services/practice.py` | Practice rules: owner answers and test results built only from the stored case; scoring (full marks at 95% of essential and 75% of soon items, nice-to-haves ignored, −3 per unneeded item up to −15) |
+| `app/services/owner_ai.py` | Gemini (free tier, `GEMINI_API_KEY`) only classifies what a question is about; it never writes the reply. Keyword matching without a key |
 | `app/routers/ai.py` | `POST /ai/parse-estimate` (stretch, stub) |
 | `app/services/suggest.py` | Fallback chain: Databricks + Claude → Databricks only → template |
 | `app/services/databricks.py` | Similar-case SQL, export of agreed plans |

@@ -1,18 +1,23 @@
 import type {
+  AskResponse,
   CatalogItem,
   CatalogItemCreate,
   CatalogItemDetail,
   CatalogItemUpdate,
   CreatePlanRequest,
   Explanation,
+  GradeResponse,
   Plan,
   PlanSummary,
+  PracticeCase,
+  PracticeItem,
   Resource,
   SuggestRequest,
   SuggestResponse,
   Symptom,
   Template,
   TemplateRank,
+  TestResponse,
 } from "./types";
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -77,4 +82,25 @@ export const api = {
   getSharedPlan: (token: string) => request<Plan>(`/share/${token}`),
   /** Use as a link href ("Download PDF"), not with fetch. */
   sharedPdfUrl: (token: string) => `${API_URL}/api/share/${token}/pdf`,
+
+  // Vet student practice. The real plan only comes back from practiceGrade.
+  practiceCase: (exclude?: string) =>
+    request<PracticeCase>(`/practice/cases${exclude ? `?exclude=${encodeURIComponent(exclude)}` : ""}`, {
+      method: "POST",
+    }),
+  practiceAsk: (caseId: string, question: string, known: string[]) =>
+    request<AskResponse>(`/practice/cases/${caseId}/ask`, {
+      method: "POST",
+      body: JSON.stringify({ question, known }),
+    }),
+  practiceTest: (caseId: string, catalogId: string) =>
+    request<TestResponse>(`/practice/cases/${caseId}/tests`, {
+      method: "POST",
+      body: JSON.stringify({ catalog_id: catalogId }),
+    }),
+  practiceGrade: (caseId: string, tests: string[], plan: PracticeItem[]) =>
+    request<GradeResponse>(`/practice/cases/${caseId}/grade`, {
+      method: "POST",
+      body: JSON.stringify({ tests, plan }),
+    }),
 };

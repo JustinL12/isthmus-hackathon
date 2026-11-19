@@ -1,0 +1,81 @@
+{
+  "_note": "Vet student practice mode. pet_names: picked at random for each case (a name says nothing about the diagnosis). tests: diagnostic catalog ids -> the case symptoms that test can show, with the finding it reports. A test only reports findings for symptoms the stored case actually has; anything else comes back as no abnormal findings.",
+  "pet_names": [
+    "Bella", "Max", "Luna", "Charlie", "Milo", "Daisy", "Oliver", "Lucy", "Cooper", "Nala",
+    "Leo", "Bailey", "Willow", "Rocky", "Pepper", "Simba", "Ziggy", "Biscuit", "Maple", "Oreo",
+    "Ginger", "Teddy", "Pumpkin", "Clover", "Juniper", "Scout", "Hazel", "Murphy", "Olive", "Sunny"
+  ],
+  "tests": {
+    "exam": {
+      "limping": "Lame on one leg; pain when the limb is handled.",
+      "swelling": "A firm, warm swelling is present.",
+      "lump": "A lump is felt under the skin.",
+      "wound": "An open wound is found.",
+      "eye-discharge": "Discharge around the eye(s).",
+      "squinting": "Squinting; the eye looks sore.",
+      "bad-breath": "Tartar buildup and red gums; bad breath.",
+      "hair-loss": "Patches of hair loss.",
+      "itching": "Red, irritated skin with scratch marks.",
+      "ear-scratching": "Red ear canal with debris.",
+      "pain": "Painful when examined.",
+      "breathing-trouble": "Breathing is fast and effortful.",
+      "coughing": "Cough heard during the exam.",
+      "sneezing": "Nasal discharge; sneezing in the room.",
+      "lethargy": "Quiet and dull in the exam room.",
+      "weight-loss": "Thin body condition compared with last records."
+    },
+    "blood-panel": {
+      "drinking-more": "Abnormal kidney or sugar values that fit increased thirst.",
+      "urinating-more": "Abnormal kidney or sugar values that fit increased urination.",
+      "weight-loss": "Changes consistent with ongoing weight loss.",
+      "lethargy": "Abnormal values that could explain low energy.",
+      "not-eating": "Abnormal values that could explain poor appetite.",
+      "vomiting": "Changes consistent with vomiting (electrolytes, dehydration)."
+    },
+    "urinalysis": {
+      "blood-in-urine": "Blood cells in the urine.",
+      "straining-to-urinate": "Inflammation in the urine sample.",
+      "urinating-more": "Dilute urine.",
+      "drinking-more": "Dilute urine."
+    },
+    "t4": {
+      "weight-loss": "Thyroid level is worth reviewing alongside the weight loss.",
+      "drinking-more": "Thyroid level is worth reviewing alongside the increased thirst."
+    },
+    "xrays-abd": {
+      "vomiting": "Abnormal gas or contents in the stomach or intestines.",
+      "ate-something": "A possible foreign object in the gut.",
+      "straining-to-urinate": "The bladder area looks abnormal."
+    },
+    "xrays-chest": {
+      "coughing": "Changes in the lungs or airways.",
+      "breathing-trouble": "Changes in the lungs, airways or around the heart."
+    },
+    "xrays-limb": {
+      "limping": "Changes in the bone or joint of the sore leg.",
+      "swelling": "Soft-tissue swelling around the bone or joint.",
+      "pain": "Bone or joint changes in the painful area."
+    },
+    "ultrasound-abd": {
+      "vomiting": "Thickened or abnormal intestines.",
+      "weight-loss": "Abnormal-looking belly organs.",
+      "blood-in-urine": "Abnormal bladder wall."
+    },
+    "fecal": {
+      "diarrhea": "Abnormal stool sample; parasites or overgrowth possible."
+    },
+    "heartworm-test": {},
+    "fiv-felv": {},
+    "ear-cytology": {
+      "ear-scratching": "Yeast and/or bacteria in the ear swab."
+    },
+    "skin-cytology": {
+      "itching": "Yeast and/or bacteria on the skin.",
+      "hair-loss": "Yeast and/or bacteria where the hair is thin."
+    },
+    "eye-stain": {
+      "squinting": "The stain picks up a scratch on the eye's surface."
+    },
+    "blood-pressure": {}
+  }
+}
