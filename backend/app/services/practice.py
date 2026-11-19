@@ -31,8 +31,6 @@ ESSENTIAL_WEIGHT = 0.7  # the rest goes to "soon"
 EXTRA_PENALTY = 3  # points off per item that isn't in the case at all
 MAX_PENALTY = 15
 
-NOTHING = "Nothing out of the ordinary that I've noticed."
-UNKNOWN = "I'm not sure, sorry. Nothing out of the ordinary that I've noticed."
 
 
 @cache
@@ -104,8 +102,70 @@ def run_test(case: dict, catalog_id: str) -> TestResponse | None:
 
 
 # ---- Owner answers ----
+# Replies are picked from these owner-voice sentences, so they sound like a person but can only
+# ever state the case's own facts. {name} is the pet, {it} the owner's phrase for a symptom.
 
 BASICS = ("name", "species", "breed", "age", "weight")
+
+# How an owner would say each symptom. No sex is on record, so the name stands in for he/she.
+OWNER_PHRASES = {
+    "vomiting": "{name} has been throwing up",
+    "diarrhea": "{name} has had diarrhea",
+    "not-eating": "{name} has barely been eating",
+    "weight-loss": "{name} seems to be losing weight",
+    "lethargy": "{name} has been really tired, just no energy",
+    "drinking-more": "{name} is drinking way more water than usual",
+    "urinating-more": "{name} is peeing a lot more than usual",
+    "straining-to-urinate": "{name} keeps straining to pee",
+    "blood-in-urine": "I've seen blood in {name}'s pee",
+    "coughing": "{name} has been coughing",
+    "sneezing": "{name} keeps sneezing, and there's a runny nose",
+    "breathing-trouble": "{name} seems to be struggling to breathe",
+    "limping": "{name} has been limping",
+    "pain": "{name} seems to be in pain",
+    "swelling": "I noticed some swelling on {name}",
+    "itching": "{name} won't stop scratching",
+    "hair-loss": "{name} has been losing fur in places",
+    "ear-scratching": "{name} keeps scratching at the ears and shaking that head",
+    "eye-discharge": "there's been gunk coming out of {name}'s eyes",
+    "squinting": "{name} has been squinting a lot",
+    "bad-breath": "{name}'s breath smells really bad",
+    "lump": "I found a lump on {name}",
+    "wound": "{name} has a wound",
+    "seizure": "{name} had what looked like a seizure",
+    "ate-something": "I think {name} ate something that wasn't food",
+}
+
+REASON = [
+    "Well, {it}, and that's what got me worried.",
+    "Mostly because {it}. It's just not like {name}.",
+    "Honestly, {it}, so I figured we'd better come in.",
+]
+REASON_WELLNESS = [
+    "Just a routine checkup for {name}. Nothing's wrong as far as I know.",
+    "We're just here for {name}'s regular checkup.",
+]
+YES = ["Yes, actually, {it}.", "Now that you mention it, yes. {It}.", "Yeah, {it}."]
+NO_ONE = ["Hmm, no, I haven't noticed anything like that.", "No, not that I've seen.", "No, nothing like that."]
+NO_SOME = "But no {label}, as far as I can tell."
+ELSE_YES = ["Oh, and {it} too.", "Hmm, let me think... {it}, actually.", "Come to think of it, {it}."]
+ELSE_NO = ["No, I think that's everything.", "That's all I can think of, really.", "No, that's about it."]
+UNKNOWNS = [
+    "Hmm, I'm not really sure. Nothing out of the ordinary that I've noticed.",
+    "I don't know, honestly. I haven't noticed anything unusual.",
+    "Sorry, I couldn't tell you. Nothing's seemed out of the ordinary.",
+]
+
+_rng = random.Random()
+
+
+def _say(options: list[str] | str, case: dict, symptom: str | None = None) -> str:
+    name = pet_name(case["case_id"])
+    text = _rng.choice(options) if isinstance(options, list) else options
+    it = OWNER_PHRASES.get(symptom or "", "{name} hasn't been right").format(name=name)
+    label = symptom_label(symptom).lower() if symptom else ""
+    out = text.format(name=name, it=it, It=it[:1].upper() + it[1:], label=label)
+    return out[:1].upper() + out[1:]
 
 
 def _age(years: float) -> str:
@@ -120,21 +180,22 @@ def _basic_answer(case: dict, field: str) -> str:
     if field == "name":
         return f"This is {name}."
     if field == "species":
-        return f"{name} is a {noun(case['species'])}."
+        return f"{name}'s a {noun(case['species'])}."
     if field == "breed":
-        return f"{name} is a {case['breed']}." if case.get("breed") else "I don't know the breed."
+        return f"{name}'s a {case['breed']}." if case.get("breed") else "I honestly don't know the breed."
     if field == "age":
-        return f"{name} is {_age(case['age_years'])}." if case.get("age_years") else "I'm not sure how old."
+        return f"{name} is {_age(case['age_years'])}." if case.get("age_years") else "I'm not sure how old, to be honest."
     if field == "weight":
         w = case.get("weight_lbs")
-        return f"Last time we weighed, about {w:g} lbs." if w else "I don't know the weight."
-    return UNKNOWN
+        return f"Last time we checked, about {w:g} pounds." if w else "I don't know the weight, sorry."
+    return _say(UNKNOWNS, case)
 
 
 def compose_answer(case: dict, parsed: dict, known: list[str]) -> AskResponse:
     """Build the owner's reply from the facts a question is about. Only the case's own
     symptom tags and basics are ever stated; everything else is 'nothing / not sure'."""
     case_symptoms: list[str] = case["symptoms"]
+
     def ids(key: str) -> list[str]:
         v = parsed.get(key)
         return list(dict.fromkeys(x for x in v if isinstance(x, str))) if isinstance(v, list) else []
@@ -149,37 +210,35 @@ def compose_answer(case: dict, parsed: dict, known: list[str]) -> AskResponse:
 
     if parsed.get("reason") is True:
         main = case_symptoms[0]
-        if main == "wellness":
-            parts.append("We're just here for a routine checkup.")
-        else:
-            parts.append(f"I brought {pet_name(case['case_id'])} in because of this: {symptom_label(main).lower()}.")
+        parts.append(_say(REASON_WELLNESS, case) if main == "wellness" else _say(REASON, case, main))
         reveal(main)
 
-    for s in asked:
-        if s in case_symptoms:
-            if s == "wellness":
-                parts.append("Yes, it's a routine checkup.")
-            else:
-                parts.append(f"Yes, I've noticed that: {symptom_label(s).lower()}.")
-            reveal(s)
-        elif s != "wellness":  # "vaccinated?" etc. is history the case doesn't record: not sure, not "no"
-            parts.append(f"{symptom_label(s)}? No, nothing like that.")
+    yes = [s for s in asked if s in case_symptoms and s not in revealed]
+    # "Vaccinated?" maps to wellness, but vaccine history isn't on record: not sure, not "no".
+    no = [s for s in asked if s not in case_symptoms and s != "wellness"]
+    for s in yes:
+        parts.append(_say(REASON_WELLNESS, case) if s == "wellness" else _say(YES, case, s))
+        reveal(s)
+    if no and not parts:
+        parts.append(_say(NO_ONE, case) if len(no) == 1 else "No, none of that.")
+    else:
+        parts.extend(_say(NO_SOME, case, s) for s in no)
 
     if parsed.get("anything_else") is True:
         told = set(known) | set(revealed)
         rest = [s for s in case_symptoms if s not in told and s != "wellness"]
         if rest:
-            parts.append(f"Now that you ask, also this: {symptom_label(rest[0]).lower()}.")
+            parts.append(_say(ELSE_YES, case, rest[0]))
             reveal(rest[0])
         else:
-            parts.append("No, that's everything I've noticed.")
+            parts.append(_say(ELSE_NO, case))
 
     for field in ids("basics"):
         if field in BASICS:
             parts.append(_basic_answer(case, field))
 
     if not parts:
-        parts.append(UNKNOWN)
+        parts.append(_say(UNKNOWNS, case))
     return AskResponse(answer=" ".join(parts), revealed=revealed)
 
 

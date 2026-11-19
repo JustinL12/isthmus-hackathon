@@ -8,7 +8,7 @@ export interface ChatMessage {
   text: string;
 }
 
-const STARTERS = ["What brings you in today?", "Anything else you've noticed?", "How is the appetite?"];
+const STARTERS = ["What brings you in today?"];
 
 /** Chat with the pet owner. Answers come from the stored case only (see backend practice.py). */
 export function OwnerChat({

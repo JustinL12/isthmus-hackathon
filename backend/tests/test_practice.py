@@ -96,21 +96,31 @@ def test_test_endpoint(client, case):
     assert client.post("/api/practice/cases/nope/tests", json={"catalog_id": "exam"}).status_code == 404
 
 
+UNSURE = ["not really sure", "don't know", "couldn't tell"]
+
+
 @pytest.mark.parametrize(
-    "question, revealed, phrase",
+    "question, revealed, phrases",
     [
-        ("Why did you bring them in today?", ["vomiting"], "vomiting"),
-        ("Is she throwing up?", ["vomiting"], "Yes"),
-        ("Any coughing?", [], "No, nothing like that"),
-        ("What do you feed at home?", [], "Nothing out of the ordinary"),
-        ("How old is the cat?", [], "12 years old"),
-        ("Has she been vaccinated?", [], "not sure"),
+        ("Why did you bring them in today?", ["vomiting"], ["throwing up"]),
+        ("Is she throwing up?", ["vomiting"], ["throwing up"]),
+        ("Any coughing?", [], ["no"]),
+        ("What do you feed at home?", [], UNSURE),
+        ("Has she been vaccinated?", [], UNSURE),
+        ("How old is the cat?", [], ["12 years old"]),
     ],
 )
-def test_ask_keyword_fallback(client, case, question, revealed, phrase):
-    r = client.post("/api/practice/cases/t-1/ask", json={"question": question}).json()
-    assert r["revealed"] == revealed
-    assert phrase in r["answer"]
+def test_ask_keyword_fallback(client, case, question, revealed, phrases):
+    for _ in range(6):  # each reply is picked from several wordings
+        r = client.post("/api/practice/cases/t-1/ask", json={"question": question}).json()
+        assert r["revealed"] == revealed
+        assert any(p in r["answer"].lower() for p in phrases), r["answer"]
+
+
+def test_every_symptom_has_an_owner_phrase():
+    from app import store
+
+    assert set(store.symptoms()) - {"wellness"} <= set(practice.OWNER_PHRASES)
 
 
 def test_anything_else_reveals_one_new_symptom(client, case):
@@ -118,7 +128,7 @@ def test_anything_else_reveals_one_new_symptom(client, case):
     assert r["revealed"] == ["weight-loss"]
     r = client.post("/api/practice/cases/t-1/ask",
                     json={"question": "Anything else?", "known": ["vomiting", "weight-loss", "lethargy"]}).json()
-    assert r["revealed"] == [] and "everything" in r["answer"]
+    assert r["revealed"] == [] and "tired" not in r["answer"]
 
 
 def test_ai_cannot_add_facts(client, case, monkeypatch):
@@ -132,7 +142,7 @@ def test_ai_cannot_add_facts(client, case, monkeypatch):
     monkeypatch.setattr(owner_ai, "_gemini", fake)
     r = client.post("/api/practice/cases/t-1/ask", json={"question": "seizures or vomiting?"}).json()
     assert r["revealed"] == ["vomiting"]
-    assert "Seizure? No" in r["answer"] and "made-up" not in r["answer"] and "old" not in r["answer"]
+    assert "no seizure" in r["answer"] and "made-up" not in r["answer"] and "years old" not in r["answer"]
 
 
 def test_gemini_failure_falls_back(client, case, monkeypatch):

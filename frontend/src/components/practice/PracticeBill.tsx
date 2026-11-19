@@ -6,9 +6,12 @@ import { money } from "@/lib/plan-math";
 import { GROUPS, type CatalogItem, type Group, type PracticeItem } from "@/lib/types";
 import { GROUP_TONE, card, focusRing, inputBase, sectionLabel, segmentOption, segmentTrack } from "@/lib/ui";
 
+// No "Nice to have" here: it isn't scored.
+const PLAN_GROUPS = GROUPS.filter((g) => g.id !== "optional");
+
 /**
  * The student's bill: the tests already run (fixed, they've been done) and the treatment plan
- * in three groups, with a price-list search to add to the plan.
+ * in the two graded groups, with a price-list search to add to the plan.
  */
 export function PracticeBill({
   catalog,
@@ -56,7 +59,7 @@ export function PracticeBill({
         )}
       </div>
 
-      {GROUPS.map((g) => {
+      {PLAN_GROUPS.map((g) => {
         const items = plan.filter((p) => p.group === g.id);
         return (
           <div key={g.id} className="mt-4">
@@ -81,7 +84,7 @@ export function PracticeBill({
                         aria-label={`Move ${item?.name ?? p.catalog_id}`}
                         className={`h-8 rounded-lg border border-line bg-white px-1.5 text-xs ${focusRing}`}
                       >
-                        {GROUPS.map((o) => (
+                        {PLAN_GROUPS.map((o) => (
                           <option key={o.id} value={o.id}>
                             {o.label}
                           </option>
@@ -111,8 +114,8 @@ export function PracticeBill({
 
       <div className="mt-4 rounded-xl bg-cream/60 p-3">
         <h3 className="text-sm font-semibold">Add to the plan</h3>
-        <div className={`mt-2 grid-cols-3 ${segmentTrack}`} role="radiogroup" aria-label="Group to add to">
-          {GROUPS.map((g) => (
+        <div className={`mt-2 grid-cols-2 ${segmentTrack}`} role="radiogroup" aria-label="Group to add to">
+          {PLAN_GROUPS.map((g) => (
             <button
               key={g.id}
               type="button"

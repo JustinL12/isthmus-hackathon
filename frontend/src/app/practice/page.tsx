@@ -32,7 +32,10 @@ const studyButton = `inline-flex items-center justify-center gap-2 rounded-xl bg
 function loadGame(): Game | null {
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as Game) : null;
+    if (!raw) return null;
+    const game = JSON.parse(raw) as Game;
+    // Games saved before "Nice to have" was dropped from the plan.
+    return { ...game, plan: game.plan.filter((p) => p.group !== "optional") };
   } catch {
     return null;
   }
@@ -249,8 +252,8 @@ function Intro({ busy, onStart }: { busy: boolean; onStart: () => void }) {
   const steps = [
     ["Meet the patient", "You get what you'd know at check-in: name, species, breed, age and weight."],
     ["Talk to the owner", "Ask questions in the chat. The owner only knows what's in the real case record."],
-    ["Run tests", "Each test you run is added to the bill under Tests run, at its price."],
-    ["Build the plan", "Sort treatments into Essential now, Recommended soon and Nice to have."],
+    ["Run tests", "Search for the test you think you need. Each one is added to the bill under Tests run."],
+    ["Build the plan", "Sort treatments into Essential now and Recommended soon."],
     ["Get scored", "Compared with what the real vet chose. Unneeded items cost you a few points."],
   ];
   return (
